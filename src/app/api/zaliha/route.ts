@@ -6,7 +6,8 @@ import { demoInventory, demoUpdateInventory } from "@/lib/demo/store";
 
 export async function GET() {
   const sesija = await procitajZahtjevSesiju();
-  if (!sesija || !["mesnica", "sefica"].includes(sesija.uloga)) {
+  // Kuhinja čita listu da bi mogla naručiti artikle iz mesnice.
+  if (!sesija || !["mesnica", "sefica", "kuhinja"].includes(sesija.uloga)) {
     return NextResponse.json({ greska: "Nemate pravo pregleda zaliha." }, { status: 403 });
   }
   const supabase = createSupabaseAdminClient();

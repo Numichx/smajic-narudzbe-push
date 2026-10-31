@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { LoginForm } from "./LoginForm";
+import { LoginForm, type NacinPrijave } from "./LoginForm";
 import { PrekidacTeme } from "@/components/PrekidacTeme";
 import { isUlogaZaposlenika, NAZIVI_ULOGA } from "@/lib/auth/session";
 
@@ -24,7 +24,8 @@ async function LoginPageContent({
   searchParams: Promise<{ uloga?: string | string[] }>;
 }) {
   const { uloga } = await searchParams;
-  const poznataUloga = isUlogaZaposlenika(uloga) ? uloga : null;
+  const poznataUloga: NacinPrijave | null =
+    uloga === "licni" ? "licni" : isUlogaZaposlenika(uloga) ? uloga : null;
 
   return (
     <>
@@ -35,7 +36,11 @@ async function LoginPageContent({
         </Link>
         <div className="row" style={{ gap: 8 }}>
           <PrekidacTeme />
-          {poznataUloga && <span className="badge badge-izdato">{NAZIVI_ULOGA[poznataUloga]}</span>}
+          {poznataUloga && (
+            <span className="badge badge-izdato">
+              {poznataUloga === "licni" ? "Lični PIN" : NAZIVI_ULOGA[poznataUloga]}
+            </span>
+          )}
         </div>
       </div>
       <div className="auth-body" style={{ padding: "28px 26px 34px" }}>

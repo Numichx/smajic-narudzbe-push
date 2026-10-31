@@ -63,8 +63,8 @@ export function ZahtjevMesnici() {
   }
 
   return (
-    <details className="card card-pad">
-      <summary className="section-title cursor-pointer">Zahtjev mesnici</summary>
+    <details open className="card card-pad">
+      <summary className="section-title cursor-pointer">Naruči iz mesnice</summary>
       {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
       {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       <form onSubmit={(event) => void posalji(event)} className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem_auto]">

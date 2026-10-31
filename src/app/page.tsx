@@ -29,6 +29,12 @@ export default function Pocetna() {
         <div className="auth-body">
           <h1 className="auth-title">Odaberi ulogu uređaja</h1>
           <p className="auth-sub">Svaki uređaj otvara jednu ulogu. Podaci se dijele između stanica.</p>
+          <Link href="/login?uloga=licni" className="btn btn-primary btn-block btn-lg mt-6">
+            Prijava ličnim PIN-om
+          </Link>
+          <p className="tiny muted mt-2" style={{ textAlign: "center" }}>
+            Zaposleni koje je šefica unijela upisuju samo svoj PIN i odmah dolaze na svoj ekran.
+          </p>
           <div className="role-grid mt-6">
             {ULOGE.map((uloga) => (
               <Link key={uloga.id} href={`/login?uloga=${uloga.id}`} className="role-card">

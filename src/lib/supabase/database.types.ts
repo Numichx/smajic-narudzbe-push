@@ -1103,6 +1103,10 @@ export type Database = {
         Args: { p_ime: string; p_pin: string }
         Returns: Json
       }
+      autentificiraj_zaposlenika: {
+        Args: { p_pin: string }
+        Returns: Json
+      }
       dodaj_sto_na_racun: {
         Args: { p_racun_id: string; p_sto_id: number }
         Returns: Json

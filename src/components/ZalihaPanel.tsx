@@ -41,6 +41,8 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
   const [promjenaId, setPromjenaId] = useState("");
   const [promjenaKolicina, setPromjenaKolicina] = useState("");
   const [promjenaRazlog, setPromjenaRazlog] = useState("");
+  const [novoStanje, setNovoStanje] = useState<Record<string, string>>({});
+  const [razlogStanja, setRazlogStanja] = useState("Popis mesnice");
   const [greska, setGreska] = useState("");
   const [poruka, setPoruka] = useState("");
   const [radi, setRadi] = useState(false);
@@ -142,7 +144,7 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
       <div className="contents">
         <p className="section-sub">Smajić · {uloga === "sefica" ? "Šefica" : "Mesnica"}</p>
         <div className="mt-1 flex items-center justify-between gap-3">
-          <h1 className="page-title">{uloga === "sefica" ? "Zaliha i nabavka" : "Zahtjevi mesnice"}</h1>
+          <h1 className="page-title">{uloga === "sefica" ? "Zaliha i nabavka" : "Mesnica"}</h1>
           <button type="button" onClick={() => void ucitaj()} className="btn btn-ghost btn-sm">Osvježi</button>
         </div>
         {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
@@ -158,7 +160,7 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
                   cijena: artikal.nabavna_cijena === null ? "" : String(artikal.nabavna_cijena),
                   prodajnaCijena: artikal.prodajna_cijena === null ? "" : String(artikal.prodajna_cijena),
                 };
-                const ispodMinimuma = artikal.stanje <= artikal.minimum;
+                const ispodMinimuma = Number(artikal.stanje) <= Number(artikal.minimum);
                 return (
                   <li key={artikal.id} className={`grid items-center gap-3 rounded-xl border bg-white p-3 sm:grid-cols-[1fr_6rem_7rem_7rem_auto] ${ispodMinimuma ? "border-amber-400" : "border-stone-200"}`}>
                     <div><p className="font-semibold">{artikal.naziv}</p><p className="tiny muted">Stanje: {artikal.stanje} {artikal.jedinica}{ispodMinimuma ? " · Na minimumu" : ""}</p></div>
@@ -217,15 +219,45 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
           </section>
           <section id="stanje" className="card card-pad mt-4">
             <h2 className="section-title">Stanje robe</h2>
+            <p className="small muted mt-1">Upišite stvarno stanje nakon popisa ili prijema robe i potvrdite. Promjena se bilježi s razlogom.</p>
+            <label className="pole mt-3">Razlog promjene<input required minLength={3} maxLength={200} value={razlogStanja} onChange={(event) => setRazlogStanja(event.target.value)} className="input" /></label>
             <ul className="mt-3 divide-y divide-stone-100">
               {artikli.map((artikal) => {
-                const ispodMinimuma = artikal.stanje <= artikal.minimum;
+                const ispodMinimuma = Number(artikal.stanje) <= Number(artikal.minimum);
+                const upisano = novoStanje[artikal.id] ?? "";
+                const delta = upisano === "" ? 0 : Math.round((Number(upisano) - Number(artikal.stanje)) * 1000) / 1000;
                 return (
-                  <li key={artikal.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <span className="font-semibold">{artikal.naziv}</span>
-                    <span className={`text-right text-sm ${ispodMinimuma ? "font-semibold text-red-700" : "text-stone-600"}`}>
-                      {artikal.stanje} {artikal.jedinica}
-                      {ispodMinimuma && <span className="block text-xs">Na minimumu</span>}
+                  <li key={artikal.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <span>
+                      <span className="font-semibold">{artikal.naziv}</span>
+                      <span className={`block text-sm ${ispodMinimuma ? "font-semibold text-red-700" : "text-stone-600"}`}>
+                        Stanje: {artikal.stanje} {artikal.jedinica}{ispodMinimuma ? " · Na minimumu" : ""}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <input
+                        aria-label={`Novo stanje za ${artikal.naziv}`}
+                        type="number" min="0" step="0.001"
+                        placeholder={`Novo (${artikal.jedinica})`}
+                        value={upisano}
+                        onChange={(event) => setNovoStanje({ ...novoStanje, [artikal.id]: event.target.value })}
+                        className="input w-32"
+                      />
+                      <button
+                        type="button"
+                        disabled={radi || upisano === "" || !Number.isFinite(delta) || delta === 0 || Number(upisano) < 0 || razlogStanja.trim().length < 3}
+                        onClick={async () => {
+                          const ok = await posaljiAkciju("/api/zaliha/promet", "POST", {
+                            zalihaId: artikal.id,
+                            promjena: delta,
+                            razlog: razlogStanja.trim(),
+                          });
+                          if (ok) setNovoStanje((prethodno) => ({ ...prethodno, [artikal.id]: "" }));
+                        }}
+                        className="btn btn-primary btn-sm"
+                      >
+                        {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "Sačuvaj"}
+                      </button>
                     </span>
                   </li>
                 );
@@ -244,7 +276,9 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
             }}
             className="card card-pad mt-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto]"
           >
-            <label className="pole">Prodaja mesa po kg<select required value={prodajaId} onChange={(event) => setProdajaId(event.target.value)} className="input"><option value="">Odaberite meso</option>{artikli.filter((artikal) => artikal.jedinica === "kg" && artikal.prodajna_cijena !== null).map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.prodajna_cijena?.toFixed(2)} KM/kg · stanje {artikal.stanje} kg</option>)}</select></label>
+            <label className="pole">Prodaja mesa po kg<select required value={prodajaId} onChange={(event) => setProdajaId(event.target.value)} className="input"><option value="">Odaberite meso</option>{artikli.filter((artikal) => artikal.jedinica === "kg").map((artikal) => artikal.prodajna_cijena === null
+              ? <option key={artikal.id} value={artikal.id} disabled>{artikal.naziv} · nema prodajne cijene (postavlja šefica)</option>
+              : <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {Number(artikal.prodajna_cijena).toFixed(2)} KM/kg · stanje {artikal.stanje} kg</option>)}</select></label>
             <label className="pole">Količina (kg)<input required type="number" min="0.001" step="0.001" value={prodajaKolicina} onChange={(event) => setProdajaKolicina(event.target.value)} className="input" /></label>
             <button disabled={radi || !prodajaId} className="btn btn-primary self-end">Evidentiraj prodaju</button>
           </form>

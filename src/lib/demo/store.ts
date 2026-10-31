@@ -1165,8 +1165,22 @@ export async function demoEmployees() {
   };
 }
 
+export async function demoPersonalLogin(
+  pin: string,
+): Promise<{ id: string; ime: string; uloga: string } | { dvosmislen: true } | null> {
+  const state = await readState();
+  const matches = state.zaposlenici.filter((entry) => entry.aktivan && entry.pin === pin);
+  if (matches.length === 0) return null;
+  if (matches.length > 1) return { dvosmislen: true };
+  const [employee] = matches;
+  return { id: employee.id, ime: employee.ime, uloga: employee.uloga };
+}
+
 export async function demoSaveEmployee(input: { id?: string; ime: string; uloga: string; pin: string }) {
   return mutate((state) => {
+    if (state.zaposlenici.some((entry) => entry.aktivan && entry.id !== input.id && entry.pin === input.pin)) {
+      throw new Error("Ovaj PIN već koristi drugi zaposlenik. Odaberite drugi PIN.");
+    }
     let employee = input.id ? state.zaposlenici.find((entry) => entry.id === input.id) : undefined;
     if (!employee) {
       employee = {

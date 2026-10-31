@@ -7,7 +7,14 @@ import type { UlogaZaposlenika } from "@/lib/auth/session";
 const PIN_DUZINA = 8;
 const TASTERI = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "⌫"];
 
-export function LoginForm({ uloga }: { uloga: UlogaZaposlenika }) {
+// "licni" = prijava samo ličnim PIN-om; uloga se saznaje iz odgovora servera.
+export type NacinPrijave = UlogaZaposlenika | "licni";
+
+function pocetnaStranica(uloga: string) {
+  return uloga === "konobar" ? "/konobar/stolovi" : `/${uloga}`;
+}
+
+export function LoginForm({ uloga }: { uloga: NacinPrijave }) {
   const router = useRouter();
   const [ime, setIme] = useState("");
   const [pin, setPin] = useState("");
@@ -15,24 +22,31 @@ export function LoginForm({ uloga }: { uloga: UlogaZaposlenika }) {
   const [saljem, setSaljem] = useState(false);
 
   const konobar = uloga === "konobar";
+  const licni = uloga === "licni";
   const mozeUci = !saljem && (konobar ? ime.trim().length >= 2 : pin.length >= 4);
 
   async function prijava(zaPin: string) {
     setSaljem(true);
     setGreska("");
     try {
-      const res = await fetch("/api/pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uloga, ime: ime.trim(), pin: zaPin }),
-      });
+      const res = licni
+        ? await fetch("/api/prijava", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: zaPin }),
+          })
+        : await fetch("/api/pin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uloga, ime: ime.trim(), pin: zaPin }),
+          });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         setGreska(data.greska ?? "Prijava nije uspjela.");
         setPin("");
         return;
       }
-      router.push(konobar ? "/konobar/stolovi" : `/${uloga}`);
+      router.push(pocetnaStranica(licni ? String(data.uloga) : uloga));
     } catch {
       setGreska("Nema veze sa serverom.");
     } finally {
@@ -60,9 +74,11 @@ export function LoginForm({ uloga }: { uloga: UlogaZaposlenika }) {
     >
       <h2>Prijava</h2>
       <p className="sub">
-        {konobar
-          ? "Unesite ime. PIN se traži kad vas šefica doda u osoblje."
-          : "Unesite PIN osoblja za ovu stanicu."}
+        {licni
+          ? "Unesite svoj lični PIN koji vam je dala šefica. Aplikacija vas vodi na vaš ekran."
+          : konobar
+            ? "Unesite ime. PIN se traži kad vas šefica doda u osoblje."
+            : "Unesite PIN osoblja za ovu stanicu."}
       </p>
 
       {konobar && (

@@ -12,8 +12,9 @@ const PrometSchema = z.object({
 
 export async function POST(request: Request) {
   const sesija = await procitajZahtjevSesiju();
-  if (sesija?.uloga !== "sefica") {
-    return NextResponse.json({ greska: "Samo šefica može evidentirati otpis ili višak." }, { status: 403 });
+  // Mesnica vodi stanje robe pa smije evidentirati popis, prijem, višak ili otpis.
+  if (!sesija || !["sefica", "mesnica"].includes(sesija.uloga)) {
+    return NextResponse.json({ greska: "Samo šefica ili mesnica mogu mijenjati stanje zalihe." }, { status: 403 });
   }
   const tijelo: unknown = await request.json().catch(() => null);
   const rezultat = PrometSchema.safeParse(tijelo);
