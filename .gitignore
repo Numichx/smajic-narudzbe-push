@@ -1,0 +1,18 @@
+node_modules
+
+.env*
+!.env.example
+.next
+.data
+supabase/.temp
+tsconfig.tsbuildinfo
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Supabase local state
+supabase/.branches/

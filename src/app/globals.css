@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@theme {
+  --color-stone-50: #f8faf9;
+  --color-stone-100: #f3f7f6;
+  --color-stone-200: #e4ecea;
+  --color-stone-300: #d3dfdc;
+  --color-stone-400: #9aabad;
+  --color-stone-500: #7d9093;
+  --color-stone-600: #66787b;
+  --color-stone-700: #3a4a4b;
+  --color-stone-800: #2d3b3c;
+  --color-stone-900: #243132;
+
+  --color-amber-50: #eaf7f4;
+  --color-amber-100: #d8f1ec;
+  --color-amber-200: #b7e7dd;
+  --color-amber-300: #83d6c6;
+  --color-amber-400: #46bda9;
+  --color-amber-500: #159d8c;
+  --color-amber-600: #118775;
+  --color-amber-700: #087a6a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #f6f9f8;
+  --foreground: #243132;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-feature-settings: "ss01" on;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  accent-color: #159d8c;
+}
+
+::selection {
+  background: #d8f1ec;
+  color: #075e53;
+}
+
+.role-shell {
+  min-height: 100dvh;
+}
+
+.role-shell main {
+  min-height: 100dvh;
+  padding-bottom: 92px;
+}
+
+.role-navigation {
+  position: fixed;
+  z-index: 40;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 64px;
+  padding: 6px max(10px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  border-top: 1px solid #e4ecea;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 -8px 24px rgb(36 49 50 / 4%);
+  backdrop-filter: blur(14px);
+}
+
+.role-nav-link {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 12px;
+  color: #91a2a4;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-decoration: none;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.role-nav-link svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.role-nav-link.is-active {
+  color: #078775;
+}
+
+.role-nav-link:focus-visible {
+  outline: 2px solid #159d8c;
+  outline-offset: -2px;
+}
+
+button.bg-stone-900 {
+  background-color: #159d8c;
+}
+
+button.bg-stone-900:hover {
+  background-color: #118775;
+}
+
+@media (min-width: 900px) {
+  .role-shell {
+    padding-left: 84px;
+  }
+
+  .role-shell main {
+    padding-bottom: 40px;
+  }
+
+  .role-navigation {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    left: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(64px, 1fr));
+    width: 84px;
+    min-height: 100dvh;
+    padding: 16px 8px;
+    border-top: 0;
+    border-right: 1px solid #e4ecea;
+    box-shadow: 8px 0 24px rgb(36 49 50 / 3%);
+  }
+
+  .role-nav-link {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .role-nav-link svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
