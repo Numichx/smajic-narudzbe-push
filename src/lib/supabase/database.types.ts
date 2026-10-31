@@ -1260,6 +1260,10 @@ export type Database = {
             }
             Returns: Json
           }
+      provjeri_ogranicenje_pina: {
+        Args: { p_ip: string }
+        Returns: number
+      }
       provjeri_pin: {
         Args: { p_kljuc: string; p_pin: string }
         Returns: boolean
@@ -1326,6 +1330,10 @@ export type Database = {
           p_zatvorio_ime: string
         }
         Returns: Json
+      }
+      zabiljezi_pin_pokusaj: {
+        Args: { p_ip: string; p_uspjesan: boolean }
+        Returns: undefined
       }
     }
     Enums: {

@@ -4,6 +4,11 @@ import { isUlogaZaposlenika } from "@/lib/auth/session";
 import { kreirajTokenSesije } from "@/lib/auth/sessionToken";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoPersonalLogin } from "@/lib/demo/store";
+import {
+  ipKlijenta,
+  provjeriOgranicenjePina,
+  zabiljeziPinPokusaj,
+} from "@/lib/auth/pinOgranicenje";
 
 const TRAJANJE_SESIJE = 60 * 60 * 12;
 
@@ -24,12 +29,17 @@ export async function POST(request: Request) {
   let pogodak: Pogodak;
   const supabase = createSupabaseAdminClient();
   if (supabase) {
+    const ip = ipKlijenta(request);
+    const zakljucano = await provjeriOgranicenjePina(supabase, ip);
+    if (zakljucano) return zakljucano;
+
     const { data, error } = await supabase.rpc("autentificiraj_zaposlenika", { p_pin: pin });
     if (error) {
       console.error("Prijava ličnim PIN-om nije uspjela:", error);
       return NextResponse.json({ greska: "PIN trenutno nije moguće provjeriti." }, { status: 503 });
     }
     pogodak = (data ?? null) as Pogodak;
+    await zabiljeziPinPokusaj(supabase, ip, pogodak !== null);
   } else {
     pogodak = await demoPersonalLogin(pin);
   }
