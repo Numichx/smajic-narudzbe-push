@@ -12,6 +12,7 @@ describe("Supabase proxy konfiguracija", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
 
     const response = await updateSession(
@@ -26,6 +27,7 @@ describe("Supabase proxy konfiguracija", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "publishable-key");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
 
     const response = await updateSession(

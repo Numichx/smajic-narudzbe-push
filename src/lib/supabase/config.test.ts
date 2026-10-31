@@ -29,6 +29,29 @@ describe("Supabase runtime konfiguracija", () => {
     });
   });
 
+  it("daje prednost SUPABASE_SECRET_KEY nad SUPABASE_SERVICE_ROLE_KEY", () => {
+    expect(
+      resolveSupabaseRuntimeConfiguration({
+        NODE_ENV: "production",
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
+        SUPABASE_SECRET_KEY: " sb_secret_key ",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      }),
+    ).toMatchObject({ mode: "supabase", serviceRoleKey: "sb_secret_key" });
+  });
+
+  it("prihvata samo SUPABASE_SECRET_KEY bez service role ključa", () => {
+    expect(
+      resolveSupabaseRuntimeConfiguration({
+        NODE_ENV: "production",
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
+        SUPABASE_SECRET_KEY: "sb_secret_key",
+      }),
+    ).toMatchObject({ mode: "supabase", serviceRoleKey: "sb_secret_key" });
+  });
+
   it("prihvata legacy anon ključ za Supabase klijente", () => {
     expect(
       resolveSupabaseRuntimeConfiguration({
@@ -66,6 +89,7 @@ describe("Supabase runtime konfiguracija", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
 
     expect(createSupabaseAdminClient()).toBeNull();
@@ -76,6 +100,7 @@ describe("Supabase runtime konfiguracija", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "publishable-key");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
 
     expect(() => createSupabaseAdminClient()).toThrow(
