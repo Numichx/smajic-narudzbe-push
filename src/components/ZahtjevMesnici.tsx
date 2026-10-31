@@ -63,14 +63,14 @@ export function ZahtjevMesnici() {
   }
 
   return (
-    <details className="rounded-xl border border-stone-200 bg-white p-4">
-      <summary className="cursor-pointer font-semibold">Zahtjev mesnici</summary>
-      {greska && <p role="alert" className="mt-3 text-sm text-red-700">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 text-sm text-emerald-800">{poruka}</p>}
+    <details className="card card-pad">
+      <summary className="section-title cursor-pointer">Zahtjev mesnici</summary>
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       <form onSubmit={(event) => void posalji(event)} className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem_auto]">
-        <label className="text-sm">Artikal<select required value={zalihaId} onChange={(event) => setZalihaId(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2"><option value="">Odaberite artikal</option>{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.stanje} {artikal.jedinica}</option>)}</select></label>
-        <label className="text-sm">Količina (opcionalno)<input type="number" min="0.001" step="0.001" value={kolicina} onChange={(event) => setKolicina(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-        <button disabled={radi || !zalihaId} className="self-end rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white disabled:opacity-50">Pošalji</button>
+        <label className="pole">Artikal<select required value={zalihaId} onChange={(event) => setZalihaId(event.target.value)} className="input"><option value="">Odaberite artikal</option>{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.stanje} {artikal.jedinica}</option>)}</select></label>
+        <label className="pole">Količina (opcionalno)<input type="number" min="0.001" step="0.001" value={kolicina} onChange={(event) => setKolicina(event.target.value)} className="input" /></label>
+        <button disabled={radi || !zalihaId} className="btn btn-primary self-end">Pošalji</button>
       </form>
     </details>
   );

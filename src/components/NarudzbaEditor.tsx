@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { KontroleRacuna } from "./KontroleRacuna";
+import { Ikona } from "./Ikona";
 import { dodajOfflineAkciju } from "@/lib/offline/queue";
+import { jeBesplatanPrilog, podrazumijevaniPrilog } from "@/lib/domain/besplatniPrilozi";
 
 type Proizvod = {
   id: string;
@@ -102,59 +104,15 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
       ) ?? []),
   ], [kategorije]);
 
-  function dozvoljenBesplatanPrilog(stavka: Proizvod, nazivPriloga: string) {
-      const naziv = stavka.naziv.toLocaleLowerCase("bs");
-      const prilog = nazivPriloga.toLocaleLowerCase("bs");
-      if (
-        ["jela-po-narudzbi", "piletina"].includes(stavka.kategorija_id) &&
-        !naziv.includes("mućkalica")
-      ) return prilog === "pomfrit";
-      if (stavka.kategorija_id === "kuhana-jela" && naziv.startsWith("lešo teletina")) {
-        return prilog === "povrće";
-      }
-      if (stavka.kategorija_id === "kuhana-jela" && naziv.startsWith("gulaš")) {
-        return ["pire", "riža", "makaroni"].includes(prilog);
-      }
-      if (stavka.kategorija_id === "riba") {
-        return ["pomfrit", "krompir salata"].includes(prilog);
-      }
-      if (stavka.kategorija_id === "pecenja" && naziv.includes("teletina ispod sača")) {
-        return ["pekarski krompir", "pomfrit"].includes(prilog);
-      }
-      if (
-        stavka.kategorija_id === "rostilj" &&
-        !naziv.includes("ćevap") &&
-        !naziv.includes("sudžuk")
-      ) return prilog === "pomfrit";
-      return false;
+  function cijenaStavke(stavka: StavkaKorpe) {
+    const prilog = proizvodiPriloga.find((item) => item.id === stavka.prilogId);
+    const cijenaPriloga = prilog && !stavka.posebanPrilog && jeBesplatanPrilog(stavka, prilog.naziv)
+      ? 0
+      : prilog?.cijena ?? 0;
+    return (stavka.cijena + cijenaPriloga) * stavka.kolicina;
   }
 
-  function standardniPrilogId(proizvod: Proizvod) {
-      const naziv = proizvod.naziv.toLocaleLowerCase("bs");
-      let standard: string | undefined;
-      if (["jela-po-narudzbi", "piletina"].includes(proizvod.kategorija_id) && !naziv.includes("mućkalica")) standard = "Pomfrit";
-      if (proizvod.kategorija_id === "kuhana-jela" && naziv.startsWith("lešo teletina")) standard = "Povrće";
-      if (proizvod.kategorija_id === "rostilj" && !naziv.includes("ćevap") && !naziv.includes("sudžuk")) standard = "Pomfrit";
-      if (proizvod.kategorija_id === "riba") standard = "Pomfrit";
-      if (proizvod.kategorija_id === "pecenja" && naziv.includes("teletina ispod sača")) standard = "Pekarski krompir";
-      return proizvodiPriloga.find((prilog) => prilog.naziv === standard)?.id ?? "";
-  }
-
-  const ukupno = useMemo(
-      () =>
-        korpa.reduce(
-          (suma, stavka) => {
-            const prilog = proizvodiPriloga.find((item) => item.id === stavka.prilogId);
-            const cijenaPriloga = prilog && !stavka.posebanPrilog &&
-              dozvoljenBesplatanPrilog(stavka, prilog.naziv)
-              ? 0
-              : prilog?.cijena ?? 0;
-            return suma + (stavka.cijena + cijenaPriloga) * stavka.kolicina;
-          },
-        0,
-      ),
-      [korpa, proizvodiPriloga],
-  );
+  const ukupno = korpa.reduce((suma, stavka) => suma + cijenaStavke(stavka), 0);
 
   function dodaj(proizvod: Proizvod) {
     setKorpa((prethodna) => {
@@ -164,7 +122,9 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
           stavka.id === proizvod.id
             ? {
                 ...stavka,
-                kolicina: stavka.kolicina + (stavka.jedinica === "kg" ? 0.1 : 1),
+                kolicina: stavka.jedinica === "kg"
+                  ? Math.round((stavka.kolicina + 0.1) * 10) / 10
+                  : stavka.kolicina + 1,
               }
             : stavka,
         );
@@ -175,7 +135,7 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
           ...proizvod,
           kolicina: proizvod.jedinica === "kg" ? 0.1 : 1,
           napomena: "",
-          prilogId: standardniPrilogId(proizvod),
+          prilogId: podrazumijevaniPrilog(proizvod, proizvodiPriloga)?.id ?? "",
           posebanPrilog: false,
         },
       ];
@@ -248,7 +208,7 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
             ? [{
                 proizvodId: prilogId,
                 standard: !posebanPrilog && stavka
-                  ? dozvoljenBesplatanPrilog(stavka, nazivPriloga)
+                  ? jeBesplatanPrilog(stavka, nazivPriloga)
                   : false,
                 poseban: posebanPrilog,
               }]
@@ -294,197 +254,182 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
     }
   }
 
+  const kolicinaUKorpi = (id: string) => korpa.find((stavka) => stavka.id === id)?.kolicina ?? 0;
+  const korakKolicine = (proizvod: Proizvod) => (proizvod.jedinica === "kg" ? 0.1 : 1);
+  const prikazKolicine = (kolicina: number, jedinica: string) =>
+    jedinica === "kg" ? kolicina.toFixed(1).replace(".", ",") : String(kolicina);
+
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-5 text-stone-900">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <Link
-              href="/konobar/stolovi"
-              className="text-sm font-medium text-amber-800 hover:underline"
-            >
-              ← Stolovi
-            </Link>
-            <h1 className="mt-1 text-2xl font-bold">Sto {stoId} · Meni</h1>
-          </div>
-          <span className="rounded-full bg-white px-3 py-2 text-sm font-semibold shadow-sm">
-            {korpa.length} stavki
-          </span>
-        </header>
+    <>
+      <div className="page-head">
+        <div>
+          <Link href="/konobar/stolovi" className="btn-link">← Stolovi</Link>
+          <h1 className="mt-1">Narudžba · Sto {stoId}</h1>
+          <p>{korpa.length} stavki u narudžbi · {ukupno.toFixed(2)} KM</p>
+        </div>
+      </div>
 
-        {greska && (
-          <p role="status" className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-            {greska}
-          </p>
-        )}
+      {greska && (
+        <div role="status" className="alert alert-info mb-3"><Ikona naziv="info" /><div>{greska}</div></div>
+      )}
 
-        {ucitava ? (
-          <p className="text-sm text-stone-600">Učitavanje menija...</p>
-        ) : (
-          <>
-            <nav className="mb-5 flex gap-2 overflow-x-auto pb-2" aria-label="Kategorije menija">
-              {kategorije.map((kategorija) => (
-                <button
-                  key={kategorija.id}
-                  type="button"
-                  onClick={() => setKategorijaId(kategorija.id)}
-                  aria-pressed={kategorijaId === kategorija.id}
-                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
-                    kategorijaId === kategorija.id
-                      ? "bg-stone-900 text-white"
-                      : "border border-stone-300 bg-white text-stone-700"
-                  }`}
-                >
-                  {kategorija.naziv}
-                </button>
-              ))}
-            </nav>
-
-            <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      {ucitava ? (
+        <p className="muted small">Učitavanje menija...</p>
+      ) : (
+        <>
+          <div className="order-layout">
+            <div className="order-main">
               <section>
-                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {aktivnaKategorija?.proizvodi.map((proizvod) => (
-                    <li key={proizvod.id}>
-                      <button
-                        type="button"
-                        onClick={() => dodaj(proizvod)}
-                        className="flex min-h-20 w-full items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm hover:border-amber-400"
-                      >
-                        <span>
-                          <span className="block font-medium">{proizvod.naziv}</span>
-                          <span className="text-xs text-stone-500">
-                            {proizvod.jedinica === "kg" ? "Cijena po kg" : "Dodaj u narudžbu"}
-                          </span>
-                        </span>
-                        <span className="shrink-0 font-semibold">
-                          {proizvod.cijena.toFixed(2)} KM
-                        </span>
-                      </button>
-                    </li>
+                <div className="row-between mb-3">
+                  <h2 className="section-title">Meni</h2>
+                  <span className="section-sub">{kategorije.length} kategorija</span>
+                </div>
+                <nav className="menu-cats" aria-label="Kategorije menija">
+                  {kategorije.map((kategorija) => (
+                    <button
+                      key={kategorija.id}
+                      type="button"
+                      onClick={() => setKategorijaId(kategorija.id)}
+                      aria-pressed={kategorijaId === kategorija.id}
+                      className={`pill${kategorijaId === kategorija.id ? " is-active" : ""}`}
+                    >
+                      {kategorija.naziv}
+                    </button>
                   ))}
-                </ul>
+                </nav>
               </section>
 
-              <aside className="h-fit rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-                <h2 className="text-lg font-bold">Narudžba</h2>
-                {korpa.length === 0 ? (
-                  <p className="mt-3 text-sm text-stone-500">Odaberite stavke iz menija.</p>
-                ) : (
-                  <ul className="mt-3 divide-y divide-stone-100">
-                    {korpa.map((stavka) => (
-                      <li key={stavka.id} className="py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="font-medium">{stavka.naziv}</span>
-                          <span className="shrink-0 text-sm">
-                            {(stavka.cijena * stavka.kolicina).toFixed(2)} KM
-                          </span>
+              <div className="menu-grid">
+                {aktivnaKategorija?.proizvodi.map((proizvod) => {
+                  const kolicina = kolicinaUKorpi(proizvod.id);
+                  const standardni = podrazumijevaniPrilog(proizvod, proizvodiPriloga);
+                  return (
+                    <div key={proizvod.id} className={`mitem${kolicina > 0 ? " is-selected" : ""}`}>
+                      <div className="mitem-body">
+                        <div className="mitem-cat">{aktivnaKategorija.naziv}</div>
+                        <div className="mitem-name">{proizvod.naziv}</div>
+                        <div className="tiny muted mt-1">
+                          {proizvod.jedinica === "kg"
+                            ? `upis u kg · ${proizvod.cijena.toFixed(2)} /kg`
+                            : standardni ? `standardno: ${standardni.naziv.toLocaleLowerCase("bs")}` : "bez standardnog priloga"}
                         </div>
-                        <div className="mt-2 flex items-center gap-2">
+                      </div>
+                      <div className="mitem-foot">
+                        <span className="mitem-price">
+                          {proizvod.cijena.toFixed(2)} <small>{proizvod.jedinica === "kg" ? "/kg" : "KM"}</small>
+                        </span>
+                        <div className={`stepper${kolicina > 0 ? " has-qty" : ""}`}>
                           <button
                             type="button"
-                            onClick={() =>
-                              promijeniKolicinu(
-                                stavka.id,
-                                stavka.jedinica === "kg" ? -0.1 : -1,
-                              )
-                            }
-                            aria-label={`Smanji količinu: ${stavka.naziv}`}
-                            className="h-8 w-8 rounded-lg border border-stone-300"
+                            onClick={() => promijeniKolicinu(proizvod.id, -korakKolicine(proizvod))}
+                            disabled={kolicina === 0}
+                            aria-label={`Smanji: ${proizvod.naziv}`}
                           >
                             −
                           </button>
-                          <span className="min-w-16 text-center text-sm">
-                            {stavka.kolicina.toFixed(stavka.jedinica === "kg" ? 1 : 0)}
-                            {stavka.jedinica === "kg" ? " kg" : ""}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              promijeniKolicinu(
-                                stavka.id,
-                                stavka.jedinica === "kg" ? 0.1 : 1,
-                              )
-                            }
-                            aria-label={`Povećaj količinu: ${stavka.naziv}`}
-                            className="h-8 w-8 rounded-lg border border-stone-300"
-                          >
+                          <span className="qty">{prikazKolicine(kolicina, proizvod.jedinica)}</span>
+                          <button type="button" onClick={() => dodaj(proizvod)} aria-label={`Dodaj: ${proizvod.naziv}`}>
                             +
                           </button>
                         </div>
-                        <label className="mt-2 block text-sm">
-                          Prilog
-                          <select
-                            value={stavka.prilogId}
-                            onChange={(event) => promijeniPrilog(stavka.id, event.target.value)}
-                            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2"
-                          >
-                            <option value="">Bez priloga</option>
-                            {proizvodiPriloga.map((prilog) => {
-                              const besplatan = dozvoljenBesplatanPrilog(stavka, prilog.naziv);
-                              return (
-                                <option key={prilog.id} value={prilog.id}>
-                                  {prilog.naziv} · {besplatan && !stavka.posebanPrilog ? "uključen" : `${prilog.cijena.toFixed(2)} KM`}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </label>
-                        {stavka.prilogId && (
-                          <label className="mt-2 flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={stavka.posebanPrilog}
-                              onChange={(event) => promijeniPosebanPrilog(stavka.id, event.target.checked)}
-                            />
-                            Poseban prilog ★
-                          </label>
-                        )}
-                        <input
-                          value={stavka.napomena}
-                          onChange={(event) =>
-                            promijeniNapomenu(stavka.id, event.target.value)
-                          }
-                          maxLength={500}
-                          placeholder="Napomena za kuhinju"
-                          className="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {korpa.some((stavka) => stavka.posebanPrilog) && (
-                  <label className="mt-3 block text-sm">
-                    PIN za poseban prilog
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={8}
-                      value={posebanPin}
-                      onChange={(event) => setPosebanPin(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2"
-                    />
-                  </label>
-                )}
-                <div className="mt-4 flex justify-between border-t border-stone-200 pt-4 font-bold">
-                  <span>Ukupno</span>
-                  <span>{ukupno.toFixed(2)} KM</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <aside className="card card-pad sticky-side">
+              <div className="receipt-head">
+                <div className="t">
+                  <h2>Sto {stoId}</h2>
+                  <span className="rid">nova narudžba</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void posaljiNarudzbu()}
-                  disabled={korpa.length === 0 || salje}
-                  className="mt-4 min-h-12 w-full rounded-xl bg-amber-500 px-4 font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {salje ? "Šaljem..." : "Pošalji narudžbu"}
-                </button>
-              </aside>
-            </div>
-            <div className="mt-6">
-              <KontroleRacuna stoId={stoId} />
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+                <p className="meta">{korpa.length === 0 ? "Odaberite stavke iz menija." : `${korpa.length} stavki`}</p>
+              </div>
+
+              <div className="receipt-lines">
+                {korpa.map((stavka) => (
+                  <div key={stavka.id} className="rline">
+                    <span className="q">{prikazKolicine(stavka.kolicina, stavka.jedinica)}{stavka.jedinica === "kg" ? "" : "×"}</span>
+                    <div className="body">
+                      <div className="nm">{stavka.naziv}</div>
+                      <select
+                        value={stavka.prilogId}
+                        onChange={(event) => promijeniPrilog(stavka.id, event.target.value)}
+                        className="input mt-2"
+                        style={{ height: 34, fontSize: "var(--fs-12)" }}
+                        aria-label={`Prilog: ${stavka.naziv}`}
+                      >
+                        <option value="">Bez priloga</option>
+                        {proizvodiPriloga.map((prilog) => {
+                          const besplatan = jeBesplatanPrilog(stavka, prilog.naziv);
+                          return (
+                            <option key={prilog.id} value={prilog.id}>
+                              {prilog.naziv} · {besplatan && !stavka.posebanPrilog ? "uključen" : `${prilog.cijena.toFixed(2)} KM`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {stavka.prilogId && (
+                        <label className="row tiny mt-1" style={{ gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={stavka.posebanPrilog}
+                            onChange={(event) => promijeniPosebanPrilog(stavka.id, event.target.checked)}
+                          />
+                          Poseban prilog ★
+                        </label>
+                      )}
+                      <input
+                        value={stavka.napomena}
+                        onChange={(event) => promijeniNapomenu(stavka.id, event.target.value)}
+                        maxLength={500}
+                        placeholder="Napomena za kuhinju"
+                        className="input mt-2"
+                        style={{ height: 34, fontSize: "var(--fs-12)" }}
+                      />
+                    </div>
+                    <span className="amt">{cijenaStavke(stavka).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {korpa.some((stavka) => stavka.posebanPrilog) && (
+                <div className="field mb-3">
+                  <label htmlFor="poseban-pin">PIN za poseban prilog</label>
+                  <input
+                    id="poseban-pin"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={posebanPin}
+                    onChange={(event) => setPosebanPin(event.target.value)}
+                    className="input"
+                  />
+                </div>
+              )}
+
+              <div className="receipt-total">
+                <span>Ukupno</span>
+                <b>{ukupno.toFixed(2)} KM</b>
+              </div>
+              <button
+                type="button"
+                onClick={() => void posaljiNarudzbu()}
+                disabled={korpa.length === 0 || salje}
+                className="btn btn-primary btn-block btn-lg"
+              >
+                {salje ? "Šaljem..." : "Pošalji narudžbu"}
+              </button>
+            </aside>
+          </div>
+
+          <div className="mt-6">
+            <KontroleRacuna stoId={stoId} />
+          </div>
+        </>
+      )}
+    </>
   );
 }

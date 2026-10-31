@@ -1,10 +1,5 @@
-import { RoleNavigation } from "@/components/RoleNavigation";
+import { AppShell } from "@/components/AppShell";
 
 export default function SankLayout({ children }: LayoutProps<"/sank">) {
-  return (
-    <div className="role-shell">
-      {children}
-      <RoleNavigation role="sank" />
-    </div>
-  );
+  return <AppShell uloga="sank">{children}</AppShell>;
 }

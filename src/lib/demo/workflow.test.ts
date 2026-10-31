@@ -21,7 +21,7 @@ describe("probni POS tok", () => {
     vi.resetModules();
     const demo = await import("./store");
     const { kategorije } = await demo.demoMenu();
-    const product = kategorije.flatMap((category) => category.proizvodi).find((entry) => entry.naziv === "Pečenica");
+    const product = kategorije.flatMap((category) => category.proizvodi).find((entry) => entry.naziv === "Goveđa pečenica");
     expect(product).toBeDefined();
     if (!product) throw new Error("Početni proizvod nije pronađen.");
 
@@ -58,7 +58,7 @@ describe("probni POS tok", () => {
     vi.resetModules();
     const demo = await import("./store");
     const { kategorije } = await demo.demoMenu();
-    const product = kategorije.flatMap((category) => category.proizvodi).find((entry) => entry.naziv === "Pečenica");
+    const product = kategorije.flatMap((category) => category.proizvodi).find((entry) => entry.naziv === "Goveđa pečenica");
     expect(product).toBeDefined();
     if (!product) throw new Error("Početni proizvod nije pronađen.");
 

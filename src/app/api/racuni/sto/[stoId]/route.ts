@@ -112,20 +112,22 @@ export async function GET(
     return NextResponse.json({ greska: "Podaci računa nisu ispravni." }, { status: 500 });
   }
 
+  const ukupno = provjera.data.narudzbe
+    .flatMap((narudzba) => narudzba.stavke_narudzbe)
+    .reduce(
+      (suma, stavka) =>
+        suma +
+        (stavka.stornirano
+          ? 0
+          : stavka.cijena * stavka.kolicina +
+            stavka.prilozi.reduce((prilozi, prilog) => prilozi + prilog.cijena, 0)),
+      0,
+    );
+
   return NextResponse.json({
     racun: {
       ...provjera.data,
-      ukupno: provjera.data.narudzbe
-        .flatMap((narudzba) => narudzba.stavke_narudzbe)
-        .reduce(
-          (suma, stavka) =>
-            suma +
-            (stavka.stornirano
-              ? 0
-              : stavka.cijena * stavka.kolicina +
-                stavka.prilozi.reduce((prilozi, prilog) => prilozi + prilog.cijena, 0)),
-          0,
-        ),
+      ukupno: Math.round((ukupno + Number.EPSILON) * 100) / 100,
       sveIzdato: provjera.data.narudzbe.every(
         (narudzba) => narudzba.status === "Izdato",
       ),

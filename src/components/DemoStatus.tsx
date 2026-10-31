@@ -24,8 +24,13 @@ export function DemoStatus() {
 
   if (!demo) return null;
   return (
-    <aside className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-950">
-      Probni način rada · podaci se čuvaju lokalno na ovom serveru i ne sinhronizuju se s drugim uređajima.
+    <aside
+      className="offline-bar"
+      style={{ position: "fixed", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 60, maxWidth: "92vw", whiteSpace: "nowrap" }}
+      title="Podaci se čuvaju lokalno na ovom serveru i ne sinhronizuju se s drugim uređajima."
+    >
+      <span className="dot" />
+      Probni način rada
     </aside>
   );
 }

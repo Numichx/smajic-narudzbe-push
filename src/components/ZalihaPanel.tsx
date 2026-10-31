@@ -80,8 +80,15 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void ucitaj(), 0);
-    return () => window.clearTimeout(timer);
-  }, [ucitaj]);
+    // Mesnica je stanica: novi zahtjevi kuhinje moraju se pojaviti bez ručnog osvježavanja.
+    const interval = uloga === "mesnica"
+      ? window.setInterval(() => void ucitaj(), 15_000)
+      : undefined;
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+    };
+  }, [ucitaj, uloga]);
 
   async function posaljiAkciju(url: string, method: "POST" | "PATCH", body: unknown) {
     setRadi(true);
@@ -122,27 +129,28 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
       prodajnaCijena?: number | null;
     } = { id: artikal.id };
     if (vrijednosti.minimum !== "") body.minimum = Number(vrijednosti.minimum);
-    if (vrijednosti.cijena !== "") body.nabavnaCijena = Number(vrijednosti.cijena);
-    if (vrijednosti.prodajnaCijena !== "") body.prodajnaCijena = Number(vrijednosti.prodajnaCijena);
+    // Prazno polje cijene znači da cijena nije podešena (null).
+    body.nabavnaCijena = vrijednosti.cijena === "" ? null : Number(vrijednosti.cijena);
+    body.prodajnaCijena = vrijednosti.prodajnaCijena === "" ? null : Number(vrijednosti.prodajnaCijena);
     await posaljiAkciju("/api/zaliha", "PATCH", body);
   }
 
   const aktivniZahtjevi = zahtjevi.filter((zahtjev) => zahtjev.status === "nov");
 
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-6 text-stone-900">
-      <div className="mx-auto max-w-5xl">
-        <p className="text-sm font-medium text-amber-700">Smajić · {uloga === "sefica" ? "Šefica" : "Mesnica"}</p>
+    <main className="contents">
+      <div className="contents">
+        <p className="section-sub">Smajić · {uloga === "sefica" ? "Šefica" : "Mesnica"}</p>
         <div className="mt-1 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{uloga === "sefica" ? "Zaliha i nabavka" : "Zahtjevi mesnice"}</h1>
-          <button type="button" onClick={() => void ucitaj()} className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm">Osvježi</button>
+          <h1 className="page-title">{uloga === "sefica" ? "Zaliha i nabavka" : "Zahtjevi mesnice"}</h1>
+          <button type="button" onClick={() => void ucitaj()} className="btn btn-ghost btn-sm">Osvježi</button>
         </div>
-        {greska && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{greska}</p>}
-        {poruka && <p role="status" className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{poruka}</p>}
+        {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
+        {poruka && <p role="status" className="alert alert-ok mt-4">{poruka}</p>}
 
         {uloga === "sefica" && (
           <section id="stanje" className="mt-5">
-            <h2 className="font-bold">Stanje robe</h2>
+            <h2 className="section-title">Stanje robe</h2>
             <ul className="mt-3 space-y-3">
               {artikli.map((artikal) => {
                 const vrijednosti = izmjene[artikal.id] ?? {
@@ -153,11 +161,11 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
                 const ispodMinimuma = artikal.stanje <= artikal.minimum;
                 return (
                   <li key={artikal.id} className={`grid items-center gap-3 rounded-xl border bg-white p-3 sm:grid-cols-[1fr_6rem_7rem_7rem_auto] ${ispodMinimuma ? "border-amber-400" : "border-stone-200"}`}>
-                    <div><p className="font-semibold">{artikal.naziv}</p><p className="text-xs text-stone-500">Stanje: {artikal.stanje} {artikal.jedinica}{ispodMinimuma ? " · Na minimumu" : ""}</p></div>
-                    <label className="text-xs">Minimum<input type="number" min={0} step="0.001" value={vrijednosti.minimum} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, minimum: event.target.value } })} className="mt-1 w-full rounded border border-stone-300 p-2 text-sm" /></label>
-                    <label className="text-xs">Nabavno/kg<input type="number" min={0} step="0.01" value={vrijednosti.cijena} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, cijena: event.target.value } })} className="mt-1 w-full rounded border border-stone-300 p-2 text-sm" /></label>
-                    <label className="text-xs">Prodajno/kg<input type="number" min={0} step="0.01" value={vrijednosti.prodajnaCijena} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, prodajnaCijena: event.target.value } })} className="mt-1 w-full rounded border border-stone-300 p-2 text-sm" /></label>
-                    <button disabled={radi} onClick={() => void sacuvajArtikal(artikal)} className="rounded-lg bg-stone-900 px-3 py-2 text-sm text-white disabled:opacity-50">Sačuvaj</button>
+                    <div><p className="font-semibold">{artikal.naziv}</p><p className="tiny muted">Stanje: {artikal.stanje} {artikal.jedinica}{ispodMinimuma ? " · Na minimumu" : ""}</p></div>
+                    <label className="pole">Minimum<input type="number" min={0} step="0.001" value={vrijednosti.minimum} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, minimum: event.target.value } })} className="input" /></label>
+                    <label className="pole">Nabavno/kg<input type="number" min={0} step="0.01" value={vrijednosti.cijena} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, cijena: event.target.value } })} className="input" /></label>
+                    <label className="pole">Prodajno/kg<input type="number" min={0} step="0.01" value={vrijednosti.prodajnaCijena} onChange={(event) => setIzmjene({ ...izmjene, [artikal.id]: { ...vrijednosti, prodajnaCijena: event.target.value } })} className="input" /></label>
+                    <button disabled={radi} onClick={() => void sacuvajArtikal(artikal)} className="btn btn-primary btn-sm">Sačuvaj</button>
                   </li>
                 );
               })}
@@ -175,40 +183,40 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
                   setPromjenaRazlog("");
                 }
               }}
-              className="mt-5 grid gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 sm:grid-cols-[1fr_9rem_1fr_auto]"
+              className="panel mt-5 grid gap-3 sm:grid-cols-[1fr_9rem_1fr_auto]"
             >
-              <label className="text-sm">Popis, višak ili otpis<select required value={promjenaId} onChange={(event) => setPromjenaId(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 bg-white p-2"><option value="">Odaberite artikal</option>{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.stanje} {artikal.jedinica}</option>)}</select></label>
-              <label className="text-sm">Promjena (+/−)<input required type="number" step="0.001" value={promjenaKolicina} onChange={(event) => setPromjenaKolicina(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 bg-white p-2" /></label>
-              <label className="text-sm">Razlog<input required minLength={3} maxLength={200} value={promjenaRazlog} onChange={(event) => setPromjenaRazlog(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 bg-white p-2" /></label>
-              <button disabled={radi || !promjenaId} className="self-end rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Evidentiraj</button>
+              <label className="pole">Popis, višak ili otpis<select required value={promjenaId} onChange={(event) => setPromjenaId(event.target.value)} className="input"><option value="">Odaberite artikal</option>{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.stanje} {artikal.jedinica}</option>)}</select></label>
+              <label className="pole">Promjena (+/−)<input required type="number" step="0.001" value={promjenaKolicina} onChange={(event) => setPromjenaKolicina(event.target.value)} className="input" /></label>
+              <label className="pole">Razlog<input required minLength={3} maxLength={200} value={promjenaRazlog} onChange={(event) => setPromjenaRazlog(event.target.value)} className="input" /></label>
+              <button disabled={radi || !promjenaId} className="btn btn-primary self-end">Evidentiraj</button>
             </form>
           </section>
         )}
 
         {uloga === "mesnica" && (
           <>
-          <section id="zahtjevi" className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
-            <h2 className="font-bold">Otvoreni zahtjevi ({aktivniZahtjevi.length})</h2>
-            {aktivniZahtjevi.length === 0 ? <p className="mt-3 text-sm text-stone-600">Nema otvorenih zahtjeva.</p> : (
+          <section id="zahtjevi" className="card card-pad mt-5">
+            <h2 className="section-title">Otvoreni zahtjevi ({aktivniZahtjevi.length})</h2>
+            {aktivniZahtjevi.length === 0 ? <p className="small muted mt-3">Nema otvorenih zahtjeva.</p> : (
               <ul className="mt-3 space-y-3">
                 {aktivniZahtjevi.map((zahtjev) => (
-                  <li key={zahtjev.id} className="rounded-lg border border-stone-200 p-3">
+                  <li key={zahtjev.id} className="panel">
                     <div className="flex flex-wrap justify-between gap-2">
                       <strong>{zahtjev.zaliha_artikli.naziv}</strong>
-                      <span className="text-sm text-stone-600">{zahtjev.kolicina ?? "Količina nije određena"} {zahtjev.zaliha_artikli.jedinica} · stanje {zahtjev.zaliha_artikli.stanje} · zahtjev: {zahtjev.kreirao_ime}</span>
+                      <span className="small muted">{zahtjev.kolicina ?? "Količina nije određena"} {zahtjev.zaliha_artikli.jedinica} · stanje {zahtjev.zaliha_artikli.stanje} · zahtjev: {zahtjev.kreirao_ime}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <input aria-label="Isporučena količina" type="number" min="0.001" step="0.001" placeholder={`Količina (${zahtjev.zaliha_artikli.jedinica})`} value={isporuke[zahtjev.id] ?? (zahtjev.kolicina ? String(zahtjev.kolicina) : "")} onChange={(event) => setIsporuke({ ...isporuke, [zahtjev.id]: event.target.value })} className="min-w-40 flex-1 rounded-lg border border-stone-300 p-2 text-sm" />
-                      <button disabled={radi || (!isporuke[zahtjev.id] && !zahtjev.kolicina)} onClick={() => void zahtjevAction(zahtjev, "isporuci")} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Potvrdi isporuku</button>
-                      <button disabled={radi} onClick={() => void posaljiAkciju("/api/zaliha/zahtjevi", "PATCH", { radnja: "nema_na_stanju", zahtjevId: zahtjev.id })} className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 disabled:opacity-50">Nema na stanju</button>
+                      <input aria-label="Isporučena količina" type="number" min="0.001" step="0.001" placeholder={`Količina (${zahtjev.zaliha_artikli.jedinica})`} value={isporuke[zahtjev.id] ?? (zahtjev.kolicina ? String(zahtjev.kolicina) : "")} onChange={(event) => setIsporuke({ ...isporuke, [zahtjev.id]: event.target.value })} className="input min-w-40 flex-1" />
+                      <button disabled={radi || (!isporuke[zahtjev.id] && !zahtjev.kolicina)} onClick={() => void zahtjevAction(zahtjev, "isporuci")} className="btn btn-primary btn-sm">Potvrdi isporuku</button>
+                      <button disabled={radi} onClick={() => void posaljiAkciju("/api/zaliha/zahtjevi", "PATCH", { radnja: "nema_na_stanju", zahtjevId: zahtjev.id })} className="btn btn-warn btn-sm">Nema na stanju</button>
                     </div>
                   </li>
                 ))}
               </ul>
             )}
           </section>
-          <section id="stanje" className="mt-4 rounded-xl border border-stone-200 bg-white p-4">
-            <h2 className="font-bold">Stanje robe</h2>
+          <section id="stanje" className="card card-pad mt-4">
+            <h2 className="section-title">Stanje robe</h2>
             <ul className="mt-3 divide-y divide-stone-100">
               {artikli.map((artikal) => {
                 const ispodMinimuma = artikal.stanje <= artikal.minimum;
@@ -234,27 +242,27 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
               });
               if (ok) setProdajaKolicina("");
             }}
-            className="mt-4 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-[1fr_10rem_auto]"
+            className="card card-pad mt-4 grid gap-3 sm:grid-cols-[1fr_10rem_auto]"
           >
-            <label className="text-sm">Prodaja mesa po kg<select required value={prodajaId} onChange={(event) => setProdajaId(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2"><option value="">Odaberite meso</option>{artikli.filter((artikal) => artikal.jedinica === "kg" && artikal.prodajna_cijena !== null).map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.prodajna_cijena?.toFixed(2)} KM/kg · stanje {artikal.stanje} kg</option>)}</select></label>
-            <label className="text-sm">Količina (kg)<input required type="number" min="0.001" step="0.001" value={prodajaKolicina} onChange={(event) => setProdajaKolicina(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-            <button disabled={radi || !prodajaId} className="self-end rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white disabled:opacity-50">Evidentiraj prodaju</button>
+            <label className="pole">Prodaja mesa po kg<select required value={prodajaId} onChange={(event) => setProdajaId(event.target.value)} className="input"><option value="">Odaberite meso</option>{artikli.filter((artikal) => artikal.jedinica === "kg" && artikal.prodajna_cijena !== null).map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {artikal.prodajna_cijena?.toFixed(2)} KM/kg · stanje {artikal.stanje} kg</option>)}</select></label>
+            <label className="pole">Količina (kg)<input required type="number" min="0.001" step="0.001" value={prodajaKolicina} onChange={(event) => setProdajaKolicina(event.target.value)} className="input" /></label>
+            <button disabled={radi || !prodajaId} className="btn btn-primary self-end">Evidentiraj prodaju</button>
           </form>
           </>
         )}
 
         {uloga === "sefica" && (
-          <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-            <h2 className="font-bold">Prijedlog nabavke (7 dana × 1,2)</h2>
+          <section className="card card-pad mt-6">
+            <h2 className="section-title">Prijedlog nabavke (7 dana × 1,2)</h2>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {nabavka.map((artikal) => <li key={artikal.id} className="flex justify-between gap-2 rounded-lg bg-stone-50 px-3 py-2 text-sm"><span>{artikal.naziv} · prodano {Number(artikal.sedmodnevna_prodaja).toFixed(3)} {artikal.jedinica}</span><strong>Nabaviti {Number(artikal.predlozena_nabavka).toFixed(3)} {artikal.jedinica}</strong></li>)}
+              {nabavka.map((artikal) => <li key={artikal.id} className="list-row small"><span>{artikal.naziv} · prodano {Number(artikal.sedmodnevna_prodaja).toFixed(3)} {artikal.jedinica}</span><strong>Nabaviti {Number(artikal.predlozena_nabavka).toFixed(3)} {artikal.jedinica}</strong></li>)}
             </ul>
           </section>
         )}
 
         {uloga === "sefica" && (
-          <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-            <h2 className="font-bold">Zahtjevi mesnice</h2>
+          <section className="card card-pad mt-6">
+            <h2 className="section-title">Zahtjevi mesnice</h2>
             <ul className="mt-3 space-y-2">
               {zahtjevi.slice(0, 30).map((zahtjev) => <li key={zahtjev.id} className="flex flex-wrap justify-between gap-2 border-t border-stone-100 py-2 text-sm"><span>{zahtjev.zaliha_artikli.naziv} · {zahtjev.kolicina ?? "?"} {zahtjev.zaliha_artikli.jedinica} · {zahtjev.kreirao_ime}</span><span>{zahtjev.status}</span></li>)}
             </ul>

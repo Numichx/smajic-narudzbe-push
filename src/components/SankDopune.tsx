@@ -66,20 +66,20 @@ export function SankDopune() {
   }
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-4">
-      <h2 className="font-bold">Popis i dopune šanka</h2>
+    <section className="card card-pad">
+      <h2 className="section-title">Popis i dopune šanka</h2>
       {smjena ? (
-        <p className="mt-1 text-sm text-stone-600">Smjena {smjena.oznaka} · preuzeo/la {smjena.preuzeo_ime}</p>
+        <p className="small muted mt-1">Smjena {smjena.oznaka} · preuzeo/la {smjena.preuzeo_ime}</p>
       ) : (
-        <p className="mt-1 text-sm text-amber-800">Nema otvorene smjene. Preuzmite smjenu da biste evidentirali dopune.</p>
+        <p className="alert alert-warn mt-2">Nema otvorene smjene. Preuzmite smjenu da biste evidentirali dopune.</p>
       )}
-      {greska && <p role="alert" className="mt-3 text-sm text-red-700">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 text-sm text-emerald-800">{poruka}</p>}
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       {smjena && (
         <form onSubmit={(event) => void evidentiraj(event)} className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem_auto]">
-          <label className="text-sm">Artikal<select value={proizvodId} onChange={(event) => setProizvodId(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2">{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {Number(artikal.cijena).toFixed(2)} KM/{artikal.jedinica}</option>)}</select></label>
-          <label className="text-sm">Dopunjeno<input required type="number" min="0.001" step="0.001" value={kolicina} onChange={(event) => setKolicina(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-          <button disabled={radi || !proizvodId} className="self-end rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Evidentiraj dopunu</button>
+          <label className="pole">Artikal<select value={proizvodId} onChange={(event) => setProizvodId(event.target.value)} className="input">{artikli.map((artikal) => <option key={artikal.id} value={artikal.id}>{artikal.naziv} · {Number(artikal.cijena).toFixed(2)} KM/{artikal.jedinica}</option>)}</select></label>
+          <label className="pole">Dopunjeno<input required type="number" min="0.001" step="0.001" value={kolicina} onChange={(event) => setKolicina(event.target.value)} className="input" /></label>
+          <button disabled={radi || !proizvodId} className="btn btn-primary self-end">Evidentiraj dopunu</button>
         </form>
       )}
     </section>

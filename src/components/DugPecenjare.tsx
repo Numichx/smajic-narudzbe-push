@@ -66,23 +66,23 @@ export function DugPecenjare() {
   }
 
   return (
-    <section className="mx-auto mb-6 w-full max-w-6xl px-4">
-      <div className="rounded-xl border border-stone-200 bg-white p-4">
+    <section className="contents">
+      <div className="card card-pad">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-bold">Dug konobara pečenjari</h2>
-          <button type="button" onClick={() => void ucitaj()} className="text-sm underline">Osvježi</button>
+          <h2 className="section-title">Dug konobara pečenjari</h2>
+          <button type="button" onClick={() => void ucitaj()} className="btn-link">Osvježi</button>
         </div>
-        {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-        {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
-        {dugovi.length === 0 ? <p className="mt-3 text-sm text-stone-600">Nema evidentiranih izdatih narudžbi.</p> : (
+        {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+        {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
+        {dugovi.length === 0 ? <p className="small muted mt-3">Nema evidentiranih izdatih narudžbi.</p> : (
           <ul className="mt-3 space-y-3">
             {dugovi.map((red) => (
-              <li key={red.ime} className="grid items-center gap-2 rounded-lg border border-stone-100 p-3 sm:grid-cols-[1fr_auto_10rem_auto]">
+              <li key={red.ime} className="debt grid items-center gap-2 sm:grid-cols-[1fr_auto_10rem_auto]">
                 <strong>{red.ime}</strong>
-                <span className="text-sm text-stone-600">Izdato {red.izdato.toFixed(2)} · plaćeno {red.placeno.toFixed(2)} · dug <b>{red.dug.toFixed(2)} KM</b></span>
+                <span className="small muted">Izdato {red.izdato.toFixed(2)} · plaćeno {red.placeno.toFixed(2)} · dug <b>{red.dug.toFixed(2)} KM</b></span>
                 {red.dug > 0 && <>
-                  <input aria-label={`Uplata od ${red.ime}`} type="number" min="0.01" max={red.dug} step="0.01" value={iznosi[red.ime] ?? ""} onChange={(event) => setIznosi({ ...iznosi, [red.ime]: event.target.value })} placeholder="Uplata KM" className="rounded-lg border border-stone-300 p-2 text-sm" />
-                  <button type="button" disabled={radi} onClick={() => void evidentiraj(red.ime)} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Platio X</button>
+                  <input aria-label={`Uplata od ${red.ime}`} type="number" min="0.01" max={red.dug} step="0.01" value={iznosi[red.ime] ?? ""} onChange={(event) => setIznosi({ ...iznosi, [red.ime]: event.target.value })} placeholder="Uplata KM" className="input" />
+                  <button type="button" disabled={radi} onClick={() => void evidentiraj(red.ime)} className="btn btn-primary btn-sm">Platio X</button>
                 </>}
               </li>
             ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Ikona } from "./Ikona";
 
 type Stanica = "kuhinja" | "pecenjara" | "sank";
 type StatusNarudzbe = "Novo" | "U pripremi" | "Gotovo" | "Izdato";
@@ -36,11 +37,12 @@ const SLJEDECI_STATUS: Record<
   sank: { Novo: "U pripremi", "U pripremi": "Izdato" },
 };
 
+/** Tekst dugmeta prema statusu u koji narudžba prelazi. */
 const TEKST_DUGMETA: Record<StatusNarudzbe, string> = {
-  Novo: "Započni pripremu",
-  "U pripremi": "Označi gotovo",
-  Gotovo: "Izdaj konobaru",
-  Izdato: "Izdato",
+  Novo: "",
+  "U pripremi": "Prihvati",
+  Gotovo: "Označi gotovo",
+  Izdato: "Izdaj",
 };
 
 export function RedStanice({
@@ -56,6 +58,8 @@ export function RedStanice({
   const [azuriraId, setAzuriraId] = useState("");
   const [cijenePecenjare, setCijenePecenjare] = useState<Record<string, string>>({});
   const [kolicineJagnjetine, setKolicineJagnjetine] = useState<Record<string, string>>({});
+  // Vrijeme posljednjeg učitavanja; minute čekanja se računaju od njega.
+  const [sada, setSada] = useState(0);
 
   const ucitajNarudzbe = useCallback(async () => {
     try {
@@ -67,6 +71,7 @@ export function RedStanice({
       }
 
       setNarudzbe(podaci.narudzbe);
+      setSada(Date.now());
       setGreska("");
     } catch {
       setGreska("Nema veze sa serverom.");
@@ -183,8 +188,8 @@ export function RedStanice({
     }
     if (status === "Gotovo" && imaJagnjetine &&
       (unesenaJagnjetina === undefined || unesenaJagnjetina.trim() === "" ||
-        !Number.isFinite(Number(unesenaJagnjetina)) || Number(unesenaJagnjetina) < 0)) {
-      setGreska("Unesite stvarnu količinu jagnjetine u kilogramima.");
+        !Number.isFinite(Number(unesenaJagnjetina)) || Number(unesenaJagnjetina) <= 0)) {
+      setGreska("Unesite stvarnu količinu jagnjetine veću od 0 kg. Ako jagnjetina nije izdata, konobar treba stornirati stavku.");
       return;
     }
     setAzuriraId(narudzba.id);
@@ -219,176 +224,157 @@ export function RedStanice({
     }
   }
 
+  const kolone: { status: StatusNarudzbe; naziv: string; klasa: string }[] = [
+    { status: "Novo", naziv: "Novo", klasa: "is-novo" },
+    { status: "U pripremi", naziv: stanica === "pecenjara" ? "Priprema" : "U pripremi", klasa: "is-priprema" },
+    ...(stanica === "pecenjara" ? [{ status: "Gotovo" as const, naziv: "Gotovo", klasa: "is-izdato" }] : []),
+  ];
+  const rasporedKolona = stanica === "kuhinja" ? "k2z" : stanica === "pecenjara" ? "k3" : "k2";
+  const kasniBroj = narudzbe.filter((narudzba) => narudzba.cekaDugo).length;
+  const minuta = (narudzba: Narudzba) =>
+    Math.max(0, Math.floor((sada - new Date(narudzba.kreirano_at).getTime()) / 60_000));
+  const imaJagnjetinu = (narudzba: Narudzba) => narudzba.stavke_narudzbe.some(
+    (stavka) => stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
+  );
+
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-6 text-stone-900">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-amber-700">Smajić · Stanica</p>
-            <h1 className="mt-1 text-2xl font-bold">{naslov}</h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => void ucitajNarudzbe()}
-            className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium hover:bg-stone-50"
-          >
-            Osvježi
+    <>
+      <div className="page-head">
+        <div>
+          <h1>{naslov}</h1>
+          <p>{narudzbe.length} aktivnih narudžbi{kasniBroj > 0 ? ` · ${kasniBroj} preko 15 min` : ""}</p>
+        </div>
+        <div className="row wrap">
+          {kolone.map((kolona) => (
+            <span key={kolona.status} className={`badge ${kolona.status === "Novo" ? "badge-novo" : kolona.status === "Gotovo" ? "badge-gotovo" : "badge-priprema"}`}>
+              {narudzbe.filter((narudzba) => narudzba.status === kolona.status).length} {kolona.naziv}
+            </span>
+          ))}
+          <button type="button" onClick={() => void ucitajNarudzbe()} className="btn btn-ghost btn-sm">
+            <Ikona naziv="osvjezi" /> Osvježi
           </button>
-        </header>
-
-        {greska && (
-          <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
-            {greska}
-          </p>
-        )}
-
-        {stanica === "kuhinja" && (
-          <details id="zbirno" className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
-            <summary className="cursor-pointer font-semibold">
-              Zbirno ({zbirno.length} jela)
-            </summary>
-            {zbirno.length ? (
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {zbirno.map((stavka) => (
-                  <li
-                    key={stavka.naziv}
-                    className="flex justify-between rounded-lg bg-stone-50 px-3 py-2 text-sm"
-                  >
-                    <span>{stavka.naziv}</span>
-                    <strong>{stavka.kolicina}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-stone-500">Nema jela na čekanju.</p>
-            )}
-          </details>
-        )}
-
-        {ucitava ? (
-          <p className="mt-6 text-sm text-stone-600">Učitavanje narudžbi...</p>
-        ) : narudzbe.length === 0 ? (
-          <p className="mt-6 rounded-xl border border-stone-200 bg-white p-5 text-sm text-stone-600">
-            Nema narudžbi na čekanju.
-          </p>
-        ) : (
-          <ul className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {narudzbe.map((narudzba, index) => {
-              const kasni = narudzba.cekaDugo;
-              const sljedeci = SLJEDECI_STATUS[stanica][narudzba.status];
-
-              return (
-                <li
-                  key={`${narudzba.id}-${index}`}
-                  className={`rounded-2xl border-2 bg-white p-4 shadow-sm ${
-                    kasni ? "border-amber-400" : "border-stone-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-xl font-bold">{narudzba.broj}</h2>
-                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold">
-                      {stanica === "pecenjara" && narudzba.status === "U pripremi"
-                        ? "Priprema"
-                        : narudzba.status}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => stampajNarudzbu(narudzba)}
-                    className="mt-3 rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium"
-                  >
-                    Štampaj narudžbu · 58 mm
-                  </button>
-                  {kasni && (
-                    <p className="mt-2 text-xs font-semibold text-amber-800">
-                      Čeka 15 minuta ili duže
-                    </p>
-                  )}
-                  <ul className="mt-4 space-y-3">
-                    {narudzba.stavke_narudzbe.map((stavka, index) => (
-                      <li
-                        key={`${stavka.id}-${index}`}
-                        className={`border-t border-stone-100 pt-3 ${
-                          stavka.stornirano ? "text-stone-400 line-through" : ""
-                        }`}
-                      >
-                        <div className="flex justify-between gap-3">
-                          <span className="font-medium">{stavka.naziv}</span>
-                          <span className="shrink-0">
-                            {stavka.kolicina}
-                            {stavka.jedinica === "kg" ? " kg" : ""}
-                          </span>
-                        </div>
-                        {stavka.napomena && (
-                          <p className="mt-1 text-sm text-amber-800">
-                            Napomena: {stavka.napomena}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  {stanica === "pecenjara" && narudzba.status === "U pripremi" && (
-                    <div className="mt-4 space-y-3">
-                      <label className="block text-sm">
-                        Cijena koju konobar plaća pečenjari (KM)
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={cijenePecenjare[narudzba.id] ?? ""}
-                          onChange={(event) => setCijenePecenjare({
-                            ...cijenePecenjare,
-                            [narudzba.id]: event.target.value,
-                          })}
-                          className="mt-1 w-full rounded-lg border border-stone-300 p-2"
-                        />
-                      </label>
-                      {narudzba.stavke_narudzbe.some(
-                        (stavka) => stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
-                      ) && (
-                        <label className="block text-sm">
-                          Stvarno izdato jagnjetine (kg) — usklađuje račun gosta
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.001"
-                            value={kolicineJagnjetine[narudzba.id] ?? ""}
-                            onChange={(event) => setKolicineJagnjetine({
-                              ...kolicineJagnjetine,
-                              [narudzba.id]: event.target.value,
-                            })}
-                            className="mt-1 w-full rounded-lg border border-stone-300 p-2"
-                          />
-                        </label>
-                      )}
-                    </div>
-                  )}
-                  {sljedeci && (
-                    <button
-                      type="button"
-                      onClick={() => void promijeniStatus(narudzba)}
-                      disabled={
-                        (azuriraId !== "" && azuriraId !== narudzba.id) ||
-                        (stanica === "pecenjara" && sljedeci === "Gotovo" &&
-                          (!cijenePecenjare[narudzba.id] ||
-                            cijenePecenjare[narudzba.id].trim() === "" ||
-                            (narudzba.stavke_narudzbe.some(
-                              (stavka) => stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
-                            ) && (kolicineJagnjetine[narudzba.id] === undefined || kolicineJagnjetine[narudzba.id].trim() === ""))))
-                      }
-                      className="mt-5 min-h-11 w-full rounded-xl bg-stone-900 px-4 font-semibold text-white hover:bg-stone-700 disabled:opacity-50"
-                    >
-                      {azuriraId === narudzba.id
-                        ? "Ažuriram..."
-                        : TEKST_DUGMETA[sljedeci]}
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        </div>
       </div>
-    </main>
+
+      {greska && (
+        <div role="alert" className="alert alert-danger mb-3"><Ikona naziv="upozorenje" /><div>{greska}</div></div>
+      )}
+
+      {ucitava ? (
+        <p className="muted small">Učitavanje narudžbi...</p>
+      ) : (
+        <div className={`kds ${rasporedKolona}`}>
+          {kolone.map((kolona) => {
+            const uKoloni = narudzbe.filter((narudzba) => narudzba.status === kolona.status);
+            return (
+              <section key={kolona.status} className={`kcol ${kolona.klasa}`}>
+                <div className="kcol-head"><h3>{kolona.naziv}</h3><span className="n">{uKoloni.length}</span></div>
+                <div className="kstack">
+                  {uKoloni.length === 0 && <p className="tiny muted" style={{ padding: "4px" }}>Nema narudžbi.</p>}
+                  {uKoloni.map((narudzba, index) => {
+                    const sljedeci = SLJEDECI_STATUS[stanica][narudzba.status];
+                    const trebaCijena = stanica === "pecenjara" && sljedeci === "Gotovo";
+                    const jagnjetina = trebaCijena && imaJagnjetinu(narudzba);
+                    const nedostajeUnos = trebaCijena && (
+                      !cijenePecenjare[narudzba.id]?.trim() ||
+                      (jagnjetina && !kolicineJagnjetine[narudzba.id]?.trim())
+                    );
+                    return (
+                      <article key={`${narudzba.id}-${index}`} className={`ocard${narudzba.cekaDugo ? " is-urgent" : ""}`}>
+                        <div className="ocard-top">
+                          <span className="ocard-id">{narudzba.broj}</span>
+                          <button type="button" onClick={() => stampajNarudzbu(narudzba)} className="ocard-tbl" aria-label={`Štampaj narudžbu ${narudzba.broj}`}>
+                            Štampa 58 mm
+                          </button>
+                        </div>
+                        <ul className="ocard-items">
+                          {narudzba.stavke_narudzbe.map((stavka, stavkaIndex) => (
+                            <li key={`${stavka.id}-${stavkaIndex}`} style={stavka.stornirano ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>
+                              <span className="q">{stavka.kolicina}{stavka.jedinica === "kg" ? " kg" : "×"}</span>
+                              <span>
+                                {stavka.naziv}
+                                {stavka.stornirano && <span className="mod"> (storno)</span>}
+                                {stavka.napomena && <span className="mod"> ({stavka.napomena})</span>}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        {trebaCijena && (
+                          <div className="stack-sm mb-3">
+                            <div className="field">
+                              <label htmlFor={`cijena-${narudzba.id}`}>Cijena za konobara (KM)</label>
+                              <input
+                                id={`cijena-${narudzba.id}`}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={cijenePecenjare[narudzba.id] ?? ""}
+                                onChange={(event) => setCijenePecenjare({ ...cijenePecenjare, [narudzba.id]: event.target.value })}
+                                className="input amount"
+                              />
+                            </div>
+                            {jagnjetina && (
+                              <div className="field">
+                                <label htmlFor={`jagnjetina-${narudzba.id}`}>Stvarno izdato jagnjetine (kg)</label>
+                                <input
+                                  id={`jagnjetina-${narudzba.id}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.001"
+                                  value={kolicineJagnjetine[narudzba.id] ?? ""}
+                                  onChange={(event) => setKolicineJagnjetine({ ...kolicineJagnjetine, [narudzba.id]: event.target.value })}
+                                  className="input amount"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="ocard-foot">
+                          <span className={`ocard-time${narudzba.cekaDugo ? " late" : ""}`}>{minuta(narudzba)} min</span>
+                          {sljedeci && (
+                            <button
+                              type="button"
+                              onClick={() => void promijeniStatus(narudzba)}
+                              disabled={(azuriraId !== "" && azuriraId !== narudzba.id) || nedostajeUnos}
+                              className={`btn btn-sm ${narudzba.status === "Novo" ? "btn-primary" : "btn-soft"}`}
+                            >
+                              {azuriraId === narudzba.id ? "Ažuriram..." : TEKST_DUGMETA[sljedeci]}
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+
+          {stanica === "kuhinja" && (
+            <aside id="zbirno" className="sum-panel">
+              <div className="panel-head"><h2>Zbirno</h2><span className="count">na čekanju</span></div>
+              {zbirno.length ? (
+                <ul className="sum-list">
+                  {zbirno.map((stavka) => (
+                    <li key={stavka.naziv}><span>{stavka.naziv}</span><span className="n">{stavka.kolicina}</span></li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="small muted">Nema jela na čekanju.</p>
+              )}
+              <div className="formula mt-3">
+                <span className="fx">Sosovi se ne računaju u zbirno</span>
+                <span className="fnote">Sabiraju se samo jela i prilozi koji se stvarno pripremaju.</span>
+              </div>
+            </aside>
+          )}
+        </div>
+      )}
+
+      <div className="alert alert-info mt-4">
+        <Ikona naziv="info" />
+        <div>Žuti rub na kartici znači da narudžba čeka 15 minuta ili duže. Ekran ostaje upaljen dok je stanica aktivna.</div>
+      </div>
+    </>
   );
 }

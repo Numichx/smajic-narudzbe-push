@@ -116,10 +116,15 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Slanje narudžbe nije uspjelo:", error);
-    return NextResponse.json(
-      { greska: error.message },
-      { status: 422 },
-    );
+    // P0001 su poruke iz same SQL funkcije, a klase 22/23 neispravni podaci;
+    // sve ostalo je privremena greška pa offline red smije pokušati ponovo.
+    const odbijeno = error.code === "P0001" || /^2[23]/.test(error.code ?? "");
+    return odbijeno
+      ? NextResponse.json({ greska: error.message }, { status: 422 })
+      : NextResponse.json(
+          { greska: "Narudžbu trenutno nije moguće sačuvati. Pokušajte ponovo." },
+          { status: 503 },
+        );
   }
 
   return NextResponse.json({ narudzba: data }, { status: 201 });

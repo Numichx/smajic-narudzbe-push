@@ -61,7 +61,7 @@ export async function GET() {
   const { data: racuni, error: greskaRacuna } = await supabase
     .from("racuni")
     .select(
-      "id, sto_id, otvoren_at, narudzbe(status, stavke_narudzbe(kolicina, cijena, stornirano))",
+      "id, sto_id, otvoren_at, narudzbe(status, stavke_narudzbe(kolicina, cijena, prilozi, stornirano))",
     )
     .eq("status", "otvoren");
 

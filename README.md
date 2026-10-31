@@ -5,7 +5,8 @@ Next.js aplikacija za narudžbe, naplatu i operativni rad restorana. Supabase
 
 ## Pokreni aplikaciju
 
-Potrebni su Node.js i Docker Desktop za lokalnu Supabase bazu.
+Potrebni su Node.js 22.12 ili noviji (preporučeno 24) i Docker Desktop za
+lokalnu Supabase bazu.
 
 ```bash
 npm install

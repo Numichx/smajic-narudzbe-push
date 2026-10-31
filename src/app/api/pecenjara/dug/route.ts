@@ -3,6 +3,23 @@ import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoButcherDebts, demoButcherPayment } from "@/lib/demo/store";
+import type { PostgrestError } from "@supabase/supabase-js";
+
+// Supabase vraća najviše 1000 redova po upitu (max_rows), a dug se računa iz
+// cijele historije, pa se redovi čitaju po stranicama.
+const VELICINA_STRANICE = 1000;
+
+async function sviRedovi<T>(
+  upit: (od: number, doReda: number) => PromiseLike<{ data: T[] | null; error: PostgrestError | null }>,
+): Promise<{ data: T[]; error: null } | { data: null; error: PostgrestError }> {
+  const redovi: T[] = [];
+  for (let od = 0; ; od += VELICINA_STRANICE) {
+    const { data, error } = await upit(od, od + VELICINA_STRANICE - 1);
+    if (error) return { data: null, error };
+    redovi.push(...(data ?? []));
+    if (!data || data.length < VELICINA_STRANICE) return { data: redovi, error: null };
+  }
+}
 
 export async function GET() {
   const sesija = await procitajZahtjevSesiju();
@@ -19,8 +36,13 @@ export async function GET() {
     }
   }
   const [{ data: narudzbe, error: greskaNarudzbi }, { data: uplate, error: greskaUplata }] = await Promise.all([
-    supabase.from("narudzbe").select("kreirao_ime, cijena_pecenjari").eq("stanica", "pecenjara").eq("status", "Izdato"),
-    supabase.from("uplate_pecenjari").select("konobar_ime, iznos"),
+    sviRedovi((od, doReda) => supabase.from("narudzbe")
+      .select("kreirao_ime, cijena_pecenjari")
+      .eq("stanica", "pecenjara").eq("status", "Izdato")
+      .order("id").range(od, doReda)),
+    sviRedovi((od, doReda) => supabase.from("uplate_pecenjari")
+      .select("konobar_ime, iznos")
+      .order("id").range(od, doReda)),
   ]);
   if (greskaNarudzbi || greskaUplata) {
     console.error("Učitavanje duga pečenjare nije uspjelo:", greskaNarudzbi ?? greskaUplata);

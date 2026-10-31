@@ -9,6 +9,15 @@ export const ULOGE_ZAPOSLENIKA = [
 
 export type UlogaZaposlenika = (typeof ULOGE_ZAPOSLENIKA)[number];
 
+export const NAZIVI_ULOGA: Record<UlogaZaposlenika, string> = {
+  konobar: "Konobar",
+  kuhinja: "Kuhinja",
+  pecenjara: "Pečenjara",
+  sank: "Šank",
+  mesnica: "Mesnica",
+  sefica: "Šefica",
+};
+
 export function isUlogaZaposlenika(
   vrijednost: unknown,
 ): vrijednost is UlogaZaposlenika {

@@ -1,10 +1,5 @@
-import { RoleNavigation } from "@/components/RoleNavigation";
+import { AppShell } from "@/components/AppShell";
 
 export default function KuhinjaLayout({ children }: LayoutProps<"/kuhinja">) {
-  return (
-    <div className="role-shell">
-      {children}
-      <RoleNavigation role="kuhinja" />
-    </div>
-  );
+  return <AppShell uloga="kuhinja">{children}</AppShell>;
 }

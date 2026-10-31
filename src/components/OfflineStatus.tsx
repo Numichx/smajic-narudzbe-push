@@ -16,8 +16,12 @@ export function OfflineStatus() {
   const sinhronizuj = useCallback(async () => {
     if (!navigator.onLine) return;
     try {
-      const broj = await sinhronizujNarudzbe();
-      if (broj > 0) setPoruka(`Sinhronizovano narudžbi: ${broj}.`);
+      const { sinhronizovano, odbijeno } = await sinhronizujNarudzbe();
+      const poruke = [
+        ...(sinhronizovano > 0 ? [`Sinhronizovano narudžbi: ${sinhronizovano}.`] : []),
+        ...odbijeno,
+      ];
+      if (poruke.length > 0) setPoruka(poruke.join(" "));
     } catch (error) {
       setPoruka(error instanceof Error ? error.message : "Offline red nije sinhronizovan.");
     } finally {
@@ -50,11 +54,11 @@ export function OfflineStatus() {
 
   if (online && naCekanju === 0 && !poruka) return null;
   return (
-    <aside className="fixed bottom-3 right-3 z-50 max-w-sm rounded-xl border border-stone-300 bg-white p-3 text-sm shadow-lg" aria-live="polite">
-      <p className="font-semibold">{online ? "Veza je aktivna" : "Offline način"}</p>
+    <aside className="card card-pad small" style={{ position: "fixed", right: 12, bottom: 88, zIndex: 50, maxWidth: 360 }} aria-live="polite">
+      <p className="section-title">{online ? "Veza je aktivna" : "Offline način"}</p>
       {naCekanju > 0 && <p>{naCekanju} narudžbi čeka sinhronizaciju.</p>}
       {poruka && <p className="mt-1 text-stone-600">{poruka}</p>}
-      {online && naCekanju > 0 && <button type="button" onClick={() => void sinhronizuj()} className="mt-2 underline">Sinhronizuj sada</button>}
+      {online && naCekanju > 0 && <button type="button" onClick={() => void sinhronizuj()} className="btn btn-soft btn-sm mt-2">Sinhronizuj sada</button>}
     </aside>
   );
 }

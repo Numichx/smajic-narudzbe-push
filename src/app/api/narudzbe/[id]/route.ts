@@ -7,7 +7,8 @@ import { demoSetOrderStatus } from "@/lib/demo/store";
 const StatusSchema = z.object({
   status: z.enum(["U pripremi", "Gotovo", "Izdato"]),
   cijenaPecenjari: z.number().nonnegative().optional(),
-  jagnjetinaKg: z.number().nonnegative().max(9999).optional(),
+  // Stavka ne može imati 0 kg (ograničenje u bazi); neizdata jagnjetina se stornira.
+  jagnjetinaKg: z.number().positive().max(9999).optional(),
 });
 
 export async function PATCH(

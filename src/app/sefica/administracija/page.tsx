@@ -6,10 +6,8 @@ export default function AdministracijaPage() {
   return (
     <>
       <AdministracijaPanel />
-      <div className="mx-auto -mt-2 w-full max-w-5xl px-4">
-        <OsobljePanel />
-        <DugoviGostiju />
-      </div>
+      <OsobljePanel />
+      <DugoviGostiju />
     </>
   );
 }

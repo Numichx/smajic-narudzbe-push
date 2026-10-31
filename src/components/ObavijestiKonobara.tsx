@@ -11,7 +11,6 @@ export function ObavijestiKonobara() {
   const vidjene = useRef(new Set<string>());
 
   useEffect(() => {
-    posljednjeVrijeme.current = new Date(Date.now() - 10_000).toISOString();
     const dozvolaTimer = window.setTimeout(() => {
       setDozvola("Notification" in window ? Notification.permission : "unsupported");
     }, 0);
@@ -20,10 +19,13 @@ export function ObavijestiKonobara() {
     async function provjeri() {
       try {
         const url = new URL("/api/konobar/obavijesti", window.location.origin);
-        url.searchParams.set("od", posljednjeVrijeme.current);
+        if (posljednjeVrijeme.current) url.searchParams.set("od", posljednjeVrijeme.current);
         const response = await fetch(url, { cache: "no-store" });
         if (!response.ok) return;
-        const body = await response.json() as { obavijesti: Obavijest[] };
+        const body = await response.json() as { obavijesti: Obavijest[]; sada: string };
+        // Preklapanje od 15 s pokriva narudžbe izdate dok je upit trajao;
+        // duplikate uklanja skup već viđenih.
+        posljednjeVrijeme.current = new Date(Date.parse(body.sada) - 15_000).toISOString();
         const nove = body.obavijesti.filter((item) => !vidjene.current.has(item.id));
         if (!active || nove.length === 0) return;
 
@@ -44,17 +46,13 @@ export function ObavijestiKonobara() {
             gain.gain.value = 0.1;
             oscillator.connect(gain);
             gain.connect(audio.destination);
+            oscillator.onended = () => void audio.close();
             oscillator.start();
             oscillator.stop(audio.currentTime + 0.18);
-            void audio.close();
           } catch (error) {
             console.warn("Zvuk obavijesti nije dostupan:", error);
           }
         }
-        const latest = nove.reduce((latestAt, item) =>
-          item.izmijenjeno_at > latestAt ? item.izmijenjeno_at : latestAt,
-        posljednjeVrijeme.current);
-        posljednjeVrijeme.current = latest;
       } catch {
         // Polling is retried on the next interval; the order remains available on the table.
       }
@@ -69,6 +67,13 @@ export function ObavijestiKonobara() {
     };
   }, []);
 
+  // Obavijest nestaje sama da ne prekriva ekran.
+  useEffect(() => {
+    if (!obavijest) return;
+    const timer = window.setTimeout(() => setObavijest(""), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [obavijest]);
+
   async function dozvoliObavijesti() {
     if (!("Notification" in window)) {
       setDozvola("unsupported");
@@ -77,11 +82,13 @@ export function ObavijestiKonobara() {
     setDozvola(await Notification.requestPermission());
   }
 
+  const traziDozvolu = dozvola !== "granted" && dozvola !== "unsupported";
+  if (!obavijest && !traziDozvolu) return null;
   return (
-    <aside className="fixed left-3 top-3 z-40 max-w-sm rounded-xl border border-stone-300 bg-white p-3 text-sm shadow-lg" aria-live="polite">
-      {obavijest && <p className="font-semibold">{obavijest}</p>}
-      {dozvola !== "granted" && dozvola !== "unsupported" && (
-        <button type="button" onClick={() => void dozvoliObavijesti()} className="underline">
+    <aside className="alert alert-ok" style={{ position: "fixed", left: 12, bottom: 88, zIndex: 40, maxWidth: 360, flexDirection: "column", boxShadow: "var(--sh-2)" }} aria-live="polite">
+      {obavijest && <b>{obavijest}</b>}
+      {traziDozvolu && (
+        <button type="button" onClick={() => void dozvoliObavijesti()} className="btn-link" style={{ textAlign: "left" }}>
           Uključi obavijesti
         </button>
       )}

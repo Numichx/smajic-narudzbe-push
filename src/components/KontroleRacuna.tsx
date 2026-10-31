@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatirajRacun58mm } from "@/lib/print/racun58mm";
+import { Ikona } from "./Ikona";
 
 type Stavka = {
   id: string;
@@ -124,6 +125,11 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
     });
     if (uspjelo) {
       setRacun(null);
+      setGostDao("");
+      setVraceniKusur("");
+      setDuznik("");
+      setPodijeljenoNa("");
+      setNacin("gotovina");
       setPoruka("Račun je naplaćen i zatvoren.");
     }
   }
@@ -163,159 +169,187 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
     prozor.print();
   }
 
-  if (ucitava) return <p className="text-sm text-stone-600">Učitavanje računa...</p>;
+  if (ucitava) return <p className="muted small">Učitavanje računa...</p>;
   if (!racun) {
     return (
-      <section className="rounded-2xl border border-stone-200 bg-white p-4">
-        <h2 className="font-bold">Otvoreni račun</h2>
-        <p className="mt-2 text-sm text-stone-600">Na ovom stolu još nema računa.</p>
-        {greska && <p role="alert" className="mt-2 text-sm text-red-700">{greska}</p>}
+      <section className="card">
+        <div className="card-head"><h2>Otvoreni račun</h2></div>
+        <div className="card-body">
+          <p className="small muted">Na ovom stolu još nema otvorenog računa.</p>
+          {greska && <div role="alert" className="alert alert-danger mt-3"><div>{greska}</div></div>}
+          {poruka && <div role="status" className="alert alert-ok mt-3"><div>{poruka}</div></div>}
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold">Račun #{racun.broj}</h2>
-          <p className="text-sm text-stone-600">
-            Stolovi: {racun.stolovi.map((sto) => sto.naziv).join(", ")}
-          </p>
-        </div>
-        <button type="button" onClick={() => void ucitaj()} className="text-sm underline">
-          Osvježi
-        </button>
-      </div>
-
-      <ul className="mt-3 divide-y divide-stone-100">
-        {racun.narudzbe.map((narudzba) => (
-          <li key={narudzba.id} className="py-2">
-            <p className="text-xs font-semibold text-stone-500">
-              {narudzba.broj} · {narudzba.status}
-            </p>
-            {narudzba.stavke_narudzbe
-              .filter((stavka) => !stavka.napomena?.startsWith("Prilog uz "))
-              .map((stavka) => (
-              <div key={stavka.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="flex-1">
-                  <span className={stavka.stornirano ? "text-stone-400 line-through" : ""}>
-                    {stavka.naziv} · {stavka.kolicina}{stavka.jedinica === "kg" ? " kg" : ""}
-                    {stavka.stornirano && ` · Storno: ${stavka.storno_razlog}`}
+    <div className="pay-layout">
+      <div className="stack">
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h2>Račun #{racun.broj}</h2>
+              <p className="sub">Stolovi: {racun.stolovi.map((sto) => sto.naziv).join(", ")}</p>
+            </div>
+            <div className="row">
+              <button type="button" onClick={stampajRacun} className="btn btn-ghost btn-sm">
+                <Ikona naziv="stampa" /> 58 mm
+              </button>
+              <button type="button" onClick={() => void ucitaj()} className="btn btn-ghost btn-sm" aria-label="Osvježi račun">
+                <Ikona naziv="osvjezi" />
+              </button>
+            </div>
+          </div>
+          <div className="card-body">
+            {racun.narudzbe.map((narudzba) => (
+              <div key={narudzba.id} className="mb-3">
+                <div className="row-between">
+                  <span className="tiny bold muted">{narudzba.broj}</span>
+                  <span className={`badge ${narudzba.status === "Izdato" ? "badge-izdato" : narudzba.status === "Novo" ? "badge-novo" : "badge-priprema"}`}>
+                    {narudzba.status}
                   </span>
-                  {stavka.prilozi.map((prilog, index) => (
-                    <span key={`${stavka.id}-${index}`} className="block text-xs text-stone-500">
-                      ↳ {prilog.naziv}{prilog.poseban ? " ★" : ""}{prilog.cijena > 0 ? ` · ${prilog.cijena.toFixed(2)} KM` : " · uključeno"}
-                    </span>
+                </div>
+                {narudzba.stavke_narudzbe
+                  .filter((stavka) => !stavka.napomena?.startsWith("Prilog uz "))
+                  .map((stavka) => (
+                    <div key={stavka.id} className="rline">
+                      <span className="q">{stavka.kolicina}{stavka.jedinica === "kg" ? "" : "×"}</span>
+                      <div className="body">
+                        <div className="nm" style={stavka.stornirano ? { textDecoration: "line-through", color: "var(--muted-2)" } : undefined}>
+                          {stavka.naziv}{stavka.jedinica === "kg" ? " (kg)" : ""}
+                        </div>
+                        {stavka.prilozi.map((prilog, index) => (
+                          <div key={`${stavka.id}-${index}`} className="mod">
+                            Prilog: {prilog.naziv}{prilog.poseban ? " ★" : ""}{prilog.cijena > 0 ? ` · ${prilog.cijena.toFixed(2)} KM` : " · uključeno"}
+                          </div>
+                        ))}
+                        {stavka.stornirano && <div className="mod" style={{ color: "var(--orange)" }}>Storno: {stavka.storno_razlog}</div>}
+                        {!stavka.stornirano && (
+                          <div className="row mt-2" style={{ gap: 6 }}>
+                            <select
+                              aria-label={`Razlog storna za ${stavka.naziv}`}
+                              value={odabraniRazlog[stavka.id] ?? RAZLOZI[0]}
+                              onChange={(event) => setOdabraniRazlog({ ...odabraniRazlog, [stavka.id]: event.target.value })}
+                              className="input"
+                              style={{ height: 30, fontSize: "var(--fs-11)", maxWidth: 160 }}
+                            >
+                              {RAZLOZI.map((razlog) => <option key={razlog}>{razlog}</option>)}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={radi}
+                              onClick={() => void posalji(`/api/narudzbe/stavka/${stavka.id}/storno`, {
+                                razlog: odabraniRazlog[stavka.id] ?? RAZLOZI[0],
+                              })}
+                              className="btn btn-warn btn-sm"
+                            >
+                              <Ikona naziv="storno" /> Storno
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <span className="amt">{stavka.stornirano ? "0,00" : (stavka.cijena * stavka.kolicina).toFixed(2)}</span>
+                    </div>
                   ))}
-                </span>
-                {!stavka.stornirano && (
-                  <div className="flex items-center gap-2">
-                    <span>{(stavka.cijena * stavka.kolicina).toFixed(2)} KM</span>
-                    <select
-                      aria-label={`Razlog storna za ${stavka.naziv}`}
-                      value={odabraniRazlog[stavka.id] ?? RAZLOZI[0]}
-                      onChange={(event) => setOdabraniRazlog({ ...odabraniRazlog, [stavka.id]: event.target.value })}
-                      className="max-w-36 rounded border border-stone-300 px-1 py-1 text-xs"
-                    >
-                      {RAZLOZI.map((razlog) => <option key={razlog}>{razlog}</option>)}
-                    </select>
-                    <button
-                      type="button"
-                      disabled={radi}
-                      onClick={() => void posalji(`/api/narudzbe/stavka/${stavka.id}/storno`, {
-                        razlog: odabraniRazlog[stavka.id] ?? RAZLOZI[0],
-                      })}
-                      className="rounded bg-red-50 px-2 py-1 text-xs text-red-800 disabled:opacity-50"
-                    >
-                      Storno
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
-          </li>
-        ))}
-      </ul>
+          </div>
+        </section>
 
-      <div className="mt-3 flex justify-between border-t border-stone-200 pt-3 font-bold">
-        <span>Ukupno</span><span>{racun.ukupno.toFixed(2)} KM</span>
+        <section className="card card-pad">
+          <h2 className="section-title">Premjesti, spoji ili podijeli sto</h2>
+          <p className="section-sub mt-1">Ako je ciljni sto zauzet, „Premjesti / spoji” spaja račune. „Dodaj sto” dodaje sto ovom računu bez spajanja.</p>
+          <div className="row wrap mt-3">
+            <select value={stoU} onChange={(event) => setStoU(event.target.value)} className="input grow" style={{ minWidth: 160 }}>
+              <option value="">Odaberi ciljni sto</option>
+              {Array.from({ length: 20 }, (_, index) => index + 1)
+                .filter((id) => !racun.stolovi.some((sto) => sto.id === id))
+                .map((id) => <option key={id} value={id}>Sto {id}</option>)}
+            </select>
+            <button
+              type="button"
+              disabled={!stoU || radi}
+              onClick={async () => {
+                const ok = await posalji("/api/stolovi/transfer", { stoIz: stoId, stoU: Number(stoU) });
+                if (ok) setStoU("");
+              }}
+              className="btn btn-ghost"
+            >
+              <Ikona naziv="prebaci" /> Premjesti / spoji
+            </button>
+            <button
+              type="button"
+              disabled={!stoU || radi}
+              onClick={async () => {
+                const ok = await posalji("/api/stolovi/transfer", {
+                  stoIz: stoId,
+                  stoU: Number(stoU),
+                  podijeliRacunId: racun.id,
+                });
+                if (ok) setStoU("");
+              }}
+              className="btn btn-ghost"
+            >
+              Dodaj sto na račun
+            </button>
+          </div>
+        </section>
       </div>
-      <button type="button" onClick={stampajRacun} className="mt-3 w-full rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium">
-        Štampaj račun · 58 mm
-      </button>
-      {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <label className="text-sm">
-          Način naplate
-          <select value={nacin} onChange={(event) => setNacin(event.target.value as typeof nacin)} className="mt-1 w-full rounded-lg border border-stone-300 p-2">
+      <aside className="pay-panel">
+        <div className="pay-total">
+          <span>Za naplatu</span>
+          <b>{racun.ukupno.toFixed(2)} KM</b>
+        </div>
+        <div className="field">
+          <label htmlFor="nacin-naplate">Način naplate</label>
+          <select id="nacin-naplate" value={nacin} onChange={(event) => setNacin(event.target.value as typeof nacin)} className="input">
             <option value="gotovina">Gotovina</option>
             <option value="kartica">Kartica</option>
             <option value="kombinovano">Kombinovano</option>
             <option value="dug">Na dug</option>
           </select>
-        </label>
+        </div>
         {nacin === "dug" ? (
-          <label className="text-sm">Ime dužnika<input value={duznik} onChange={(event) => setDuznik(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
+          <div className="field mt-3">
+            <label htmlFor="duznik">Ime dužnika</label>
+            <input id="duznik" value={duznik} onChange={(event) => setDuznik(event.target.value)} className="input" />
+          </div>
         ) : (
           <>
-            <label className="text-sm">Gost dao (KM)<input type="number" min={0} step="0.01" value={gostDao} onChange={(event) => setGostDao(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-            <label className="text-sm">Kusur (najviše {kusurOcekivan.toFixed(2)} KM)<input type="number" min={0} step="0.01" value={vraceniKusur} onChange={(event) => setVraceniKusur(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
+            <div className="field mt-3">
+              <label htmlFor="gost-dao">Gost dao (KM)</label>
+              <input id="gost-dao" type="number" min={0} step="0.01" value={gostDao} onChange={(event) => setGostDao(event.target.value)} className="input amount" />
+            </div>
+            <div className="field mt-3">
+              <label htmlFor="kusur">Vraćeni kusur (najviše {kusurOcekivan.toFixed(2)} KM)</label>
+              <input id="kusur" type="number" min={0} step="0.01" value={vraceniKusur} onChange={(event) => setVraceniKusur(event.target.value)} className="input amount" />
+            </div>
           </>
         )}
-        <label className="text-sm">Broj osoba (neobavezno)<input type="number" min={1} max={100} value={podijeljenoNa} onChange={(event) => setPodijeljenoNa(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-      </div>
-      {podijeljenoNa && Number(podijeljenoNa) > 0 && (
-        <p className="mt-2 text-sm text-stone-600">
-          Po osobi: {(racun.ukupno / Number(podijeljenoNa)).toFixed(2)} KM
-        </p>
-      )}
-      {!racun.sveIzdato && <p className="mt-2 text-sm text-amber-800">Naplata je dostupna kada sve stanice izdaju narudžbe.</p>}
-      <button type="button" disabled={radi || !racun.sveIzdato} onClick={() => void naplati()} className="mt-3 min-h-11 w-full rounded-lg bg-emerald-700 px-4 font-semibold text-white disabled:opacity-40">
-        Naplati {racun.ukupno.toFixed(2)} KM
-      </button>
-
-      <div className="mt-5 border-t border-stone-200 pt-4">
-        <h3 className="font-semibold">Premjesti, spoji ili podijeli sto</h3>
-        <div className="mt-2 flex gap-2">
-          <select value={stoU} onChange={(event) => setStoU(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-stone-300 p-2">
-            <option value="">Odaberi ciljni sto</option>
-            {Array.from({ length: 20 }, (_, index) => index + 1)
-              .filter((id) => !racun.stolovi.some((sto) => sto.id === id))
-              .map((id) => <option key={id} value={id}>Sto {id}</option>)}
-          </select>
-          <button
-            type="button"
-            disabled={!stoU || radi}
-            onClick={async () => {
-              const ok = await posalji("/api/stolovi/transfer", { stoIz: stoId, stoU: Number(stoU) });
-              if (ok) setStoU("");
-            }}
-            className="rounded-lg border border-stone-300 px-3 text-sm font-medium disabled:opacity-40"
-          >
-            Premjesti / spoji
+        <div className="field mt-3">
+          <label htmlFor="broj-osoba">Broj osoba (neobavezno)</label>
+          <input id="broj-osoba" type="number" min={1} max={100} value={podijeljenoNa} onChange={(event) => setPodijeljenoNa(event.target.value)} className="input" />
+        </div>
+        <div className="kv mt-3">
+          {nacin !== "dug" && <div><span className="k">Kusur</span><span className="v">{kusurOcekivan.toFixed(2)} KM</span></div>}
+          {podijeljenoNa && Number(podijeljenoNa) > 0 && (
+            <div><span className="k">Po osobi</span><span className="v">{(racun.ukupno / Number(podijeljenoNa)).toFixed(2)} KM</span></div>
+          )}
+        </div>
+        {!racun.sveIzdato && (
+          <div className="alert alert-warn mt-3"><Ikona naziv="upozorenje" /><div>Naplata je dostupna kada sve stanice izdaju narudžbe.</div></div>
+        )}
+        {greska && <div role="alert" className="alert alert-danger mt-3"><div>{greska}</div></div>}
+        {poruka && <div role="status" className="alert alert-ok mt-3"><div>{poruka}</div></div>}
+        <div className="pay-actions">
+          <button type="button" disabled={radi || !racun.sveIzdato} onClick={() => void naplati()} className="btn btn-primary btn-lg btn-block">
+            Naplati {racun.ukupno.toFixed(2)} KM
           </button>
         </div>
-        <button
-          type="button"
-          disabled={!stoU || radi}
-          onClick={async () => {
-            const ok = await posalji("/api/stolovi/transfer", {
-              stoIz: stoId,
-              stoU: Number(stoU),
-              podijeliRacunId: racun.id,
-            });
-            if (ok) setStoU("");
-          }}
-          className="mt-2 rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium disabled:opacity-40"
-        >
-          Dodaj sto na isti račun
-        </button>
-        <p className="mt-1 text-xs text-stone-500">Ako je ciljni sto zauzet, prvi gumb spaja račune. Drugi dodaje sto ovom računu bez spajanja.</p>
-      </div>
-      <p className="sr-only">{stavke.length} stavki na računu</p>
-    </section>
+        <p className="sr-only">{stavke.length} stavki na računu</p>
+      </aside>
+    </div>
   );
 }

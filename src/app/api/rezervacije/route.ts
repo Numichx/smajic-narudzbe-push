@@ -13,35 +13,46 @@ const RezervacijaSchema = z.object({
   napomena: z.string().trim().max(500).optional(),
 });
 
+const GraniceDanaSchema = z.object({
+  od: z.string().datetime({ offset: true }),
+  do: z.string().datetime({ offset: true }),
+}).refine(({ od, do: doVremena }) => {
+  const trajanje = Date.parse(doVremena) - Date.parse(od);
+  // Dan ima 23 do 25 sati zbog ljetnog računanja vremena.
+  return trajanje > 0 && trajanje <= 25 * 60 * 60 * 1000;
+});
+
 export async function GET(request: Request) {
   const sesija = await procitajZahtjevSesiju();
   if (!sesija || !["konobar", "sefica"].includes(sesija.uloga)) {
     return NextResponse.json({ greska: "Nemate pravo pregleda rezervacija." }, { status: 403 });
   }
-  const url = new URL(request.url);
-  const dan = url.searchParams.get("dan") ?? new Date().toISOString().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dan)) {
+  // Preglednik šalje granice lokalnog dana (od/do); server je često u UTC-u,
+  // pa bi sam izračun pomjerio rezervacije oko ponoći na pogrešan dan.
+  const granice = GraniceDanaSchema.safeParse({
+    od: new URL(request.url).searchParams.get("od"),
+    do: new URL(request.url).searchParams.get("do"),
+  });
+  if (!granice.success) {
     return NextResponse.json({ greska: "Datum nije ispravan." }, { status: 400 });
   }
+  const { od: pocetak, do: kraj } = granice.data;
 
   const supabase = createSupabaseAdminClient();
   if (!supabase) {
     try {
-      return NextResponse.json(await demoReservations(dan));
+      return NextResponse.json(await demoReservations(pocetak, kraj));
     } catch (error) {
       console.error("Učitavanje probnih rezervacija nije uspjelo:", error);
       return NextResponse.json({ greska: "Probne rezervacije nije moguće učitati." }, { status: 500 });
     }
   }
-  const pocetak = new Date(`${dan}T00:00:00`).toISOString();
-  const kraj = new Date(`${dan}T00:00:00`);
-  kraj.setDate(kraj.getDate() + 1);
 
   const { data, error } = await supabase
     .from("rezervacije")
     .select("id, ime, broj_gostiju, rezervisano_za, sto_id, telefon, napomena, status")
     .gte("rezervisano_za", pocetak)
-    .lt("rezervisano_za", kraj.toISOString())
+    .lt("rezervisano_za", kraj)
     .order("rezervisano_za");
   if (error) {
     console.error("Učitavanje rezervacija nije uspjelo:", error);
@@ -109,14 +120,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ greska: error instanceof Error ? error.message : "Rezervacija nije izmijenjena." }, { status: 422 });
     }
   }
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("rezervacije")
     .update({ status: rezultat.data.status })
     .eq("id", rezultat.data.id)
-    .eq("status", "aktivna");
+    .eq("status", "aktivna")
+    .select("id");
   if (error) {
     console.error("Promjena rezervacije nije uspjela:", error);
     return NextResponse.json({ greska: "Rezervaciju nije moguće izmijeniti." }, { status: 422 });
+  }
+  if (data.length === 0) {
+    return NextResponse.json({ greska: "Aktivna rezervacija nije pronađena." }, { status: 409 });
   }
   return NextResponse.json({ ok: true });
 }

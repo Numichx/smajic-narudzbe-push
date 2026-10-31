@@ -64,21 +64,21 @@ export function DugoviGostiju() {
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-4">
+    <section className="card card-pad mt-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Dugovi gostiju</h2>
-        <button type="button" onClick={() => void ucitaj()} className="text-sm underline">Osvježi</button>
+        <h2 className="section-title">Dugovi gostiju</h2>
+        <button type="button" onClick={() => void ucitaj()} className="btn-link">Osvježi</button>
       </div>
-      {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
-      {dugovi.length === 0 ? <p className="mt-3 text-sm text-stone-600">Nema otvorenih dugova.</p> : (
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
+      {dugovi.length === 0 ? <p className="small muted mt-3">Nema otvorenih dugova.</p> : (
         <ul className="mt-3 space-y-2">
           {dugovi.map((dug) => (
-            <li key={dug.id} className="grid items-center gap-2 rounded-lg border border-stone-100 p-3 sm:grid-cols-[1fr_auto_auto_auto]">
+            <li key={dug.id} className="debt grid items-center gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
               <span><strong>{dug.duznik}</strong><span className="block text-xs text-stone-500">Račun #{dug.broj} · konobar {dug.konobar} · {dug.kreirano ? new Date(dug.kreirano).toLocaleDateString("bs-BA") : ""}</span></span>
               <strong>{dug.iznos.toFixed(2)} KM</strong>
-              <select aria-label={`Način naplate duga ${dug.duznik}`} value={nacin[dug.id] ?? "gotovina"} onChange={(event) => setNacin({ ...nacin, [dug.id]: event.target.value as "gotovina" | "kartica" })} className="rounded border border-stone-300 p-2 text-sm"><option value="gotovina">Gotovina</option><option value="kartica">Kartica</option></select>
-              <button type="button" disabled={radi} onClick={() => void naplati(dug.id, dug.iznos, dug.duznik)} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Naplaćeno</button>
+              <select aria-label={`Način naplate duga ${dug.duznik}`} value={nacin[dug.id] ?? "gotovina"} onChange={(event) => setNacin({ ...nacin, [dug.id]: event.target.value as "gotovina" | "kartica" })} className="input"><option value="gotovina">Gotovina</option><option value="kartica">Kartica</option></select>
+              <button type="button" disabled={radi} onClick={() => void naplati(dug.id, dug.iznos, dug.duznik)} className="btn btn-primary btn-sm">Naplaćeno</button>
             </li>
           ))}
         </ul>

@@ -72,29 +72,29 @@ export function AdministracijaPanel() {
   }
 
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-6 text-stone-900">
-      <div className="mx-auto max-w-5xl">
-        <p className="text-sm font-medium text-amber-700">Smajić · Šefica</p>
-        <h1 className="mt-1 text-2xl font-bold">Administracija</h1>
-        {greska && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{greska}</p>}
-        {poruka && <p role="status" className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{poruka}</p>}
+    <main className="contents">
+      <div className="contents">
+        <p className="section-sub">Smajić · Šefica</p>
+        <h1 className="page-title mt-1">Administracija</h1>
+        {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
+        {poruka && <p role="status" className="alert alert-ok mt-4">{poruka}</p>}
 
-        <form onSubmit={(event) => void sacuvajPin(event)} className="mt-5 grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto]">
-          <label className="text-sm">PIN za promjenu<select value={vrsta} onChange={(event) => setVrsta(event.target.value as typeof vrsta)} className="mt-1 w-full rounded-lg border border-stone-300 p-2">{VRSTE_PIN.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-          <label className="text-sm">Novi PIN (4–8 cifara)<input required type="password" inputMode="numeric" pattern="[0-9]{4,8}" minLength={4} maxLength={8} autoComplete="new-password" value={pin} onChange={(event) => setPin(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-          <button disabled={radi} className="self-end rounded-lg bg-stone-900 px-4 py-2 font-semibold text-white disabled:opacity-50">Promijeni PIN</button>
+        <form onSubmit={(event) => void sacuvajPin(event)} className="card card-pad mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+          <label className="pole">PIN za promjenu<select value={vrsta} onChange={(event) => setVrsta(event.target.value as typeof vrsta)} className="input">{VRSTE_PIN.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label className="pole">Novi PIN (4–8 cifara)<input required type="password" inputMode="numeric" pattern="[0-9]{4,8}" minLength={4} maxLength={8} autoComplete="new-password" value={pin} onChange={(event) => setPin(event.target.value)} className="input" /></label>
+          <button disabled={radi} className="btn btn-primary self-end">Promijeni PIN</button>
         </form>
 
         <section className="mt-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Dnevnik radnji</h2>
-            <button type="button" onClick={() => void ucitajDnevnik()} className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm">Osvježi</button>
+            <h2 className="section-title">Dnevnik radnji</h2>
+            <button type="button" onClick={() => void ucitajDnevnik()} className="btn btn-ghost btn-sm">Osvježi</button>
           </div>
-          {dnevnik.length === 0 ? <p className="mt-3 rounded-xl bg-white p-4 text-sm text-stone-600">Dnevnik je prazan.</p> : (
+          {dnevnik.length === 0 ? <p className="card card-pad mt-3 small muted">Dnevnik je prazan.</p> : (
             <ul className="mt-3 space-y-2">
               {dnevnik.map((stavka) => (
-                <li key={stavka.id} className="rounded-xl border border-stone-200 bg-white p-3">
-                  <div className="flex flex-wrap justify-between gap-2 text-sm"><strong>{stavka.radnja} · {stavka.entitet}</strong><time className="text-stone-500">{new Date(stavka.kreirano_at).toLocaleString("bs-BA")}</time></div>
+                <li key={stavka.id} className="card card-pad">
+                  <div className="flex flex-wrap justify-between gap-2 text-sm"><strong>{stavka.radnja} · {stavka.entitet}</strong><time className="muted">{new Date(stavka.kreirano_at).toLocaleString("bs-BA")}</time></div>
                   <p className="mt-1 text-sm text-stone-700">{stavka.akter_ime} ({stavka.akter_uloga}){stavka.entitet_id ? ` · ${stavka.entitet_id}` : ""}</p>
                   {Object.keys(stavka.detalji ?? {}).length > 0 && <pre className="mt-2 overflow-auto rounded bg-stone-50 p-2 text-xs">{JSON.stringify(stavka.detalji, null, 2)}</pre>}
                 </li>

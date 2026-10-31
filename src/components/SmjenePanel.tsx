@@ -143,45 +143,45 @@ export function SmjenePanel({ naslov = "Smjena i zatvaranje dana", zatvaranjeDan
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+    <section className="card card-pad">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">{naslov}</h2>
-        <button type="button" onClick={() => void ucitaj()} className="text-sm underline">Osvježi</button>
+        <h2 className="section-title">{naslov}</h2>
+        <button type="button" onClick={() => void ucitaj()} className="btn-link">Osvježi</button>
       </div>
-      {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
 
       {otvorena ? (
         <div className="mt-4">
           <p className="text-sm text-stone-700">Smjena {otvorena.oznaka} · preuzeo/la {otvorena.preuzeo_ime} · od {new Date(otvorena.pocetak_at).toLocaleString("bs-BA")}</p>
-          <p className="mt-1 text-xs text-stone-500">Popis unesite po artiklu. Dopune evidentirane tokom smjene automatski se uračunavaju.</p>
-          {!otvorena.popis_pecenjare_zatvoren && <p className="mt-2 text-sm text-amber-800">Prije zatvaranja smjene, pečenjara mora unijeti i zaključiti popis.</p>}
+          <p className="tiny muted mt-1">Popis unesite po artiklu. Dopune evidentirane tokom smjene automatski se uračunavaju.</p>
+          {!otvorena.popis_pecenjare_zatvoren && <p className="alert alert-warn mt-2">Prije zatvaranja smjene, pečenjara mora unijeti i zaključiti popis.</p>}
           <fieldset className="mt-3">
             <legend className="text-sm font-medium">Završni popis šanka</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {artikliSanka.map((artikal) => <label key={artikal.id} className="flex items-center justify-between gap-3 text-sm">{artikal.naziv}<span className="flex items-center gap-2"><input aria-label={`Završno stanje: ${artikal.naziv}`} type="number" min="0" step="0.001" value={zavrsniPopis[artikal.naziv] ?? "0"} onChange={(event) => setZavrsniPopis((stanje) => ({ ...stanje, [artikal.naziv]: event.target.value }))} className="w-28 rounded-lg border border-stone-300 p-2" /><span className="text-stone-500">{artikal.jedinica}</span></span></label>)}
+              {artikliSanka.map((artikal) => <label key={artikal.id} className="flex items-center justify-between gap-3 text-sm">{artikal.naziv}<span className="flex items-center gap-2"><input aria-label={`Završno stanje: ${artikal.naziv}`} type="number" min="0" step="0.001" value={zavrsniPopis[artikal.naziv] ?? "0"} onChange={(event) => setZavrsniPopis((stanje) => ({ ...stanje, [artikal.naziv]: event.target.value }))} className="input w-28" /><span className="muted">{artikal.jedinica}</span></span></label>)}
             </div>
           </fieldset>
-          <label className="mt-3 block text-sm">Predani pazar (KM)<input type="number" min={0} step="0.01" value={predaniPazar} onChange={(event) => setPredaniPazar(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-          <button type="button" disabled={radi || predaniPazar === "" || !otvorena.popis_pecenjare_zatvoren} onClick={() => void zatvori()} className="mt-3 min-h-11 rounded-lg bg-stone-900 px-4 font-semibold text-white disabled:opacity-40">Zaključi smjenu</button>
+          <label className="pole mt-3">Predani pazar (KM)<input type="number" min={0} step="0.01" value={predaniPazar} onChange={(event) => setPredaniPazar(event.target.value)} className="input" /></label>
+          <button type="button" disabled={radi || predaniPazar === "" || !otvorena.popis_pecenjare_zatvoren} onClick={() => void zatvori()} className="btn btn-primary mt-3">Zaključi smjenu</button>
         </div>
       ) : (
         <div className="mt-4">
-          <p className="text-sm text-stone-600">Trenutno nema otvorene smjene.</p>
+          <p className="small muted">Trenutno nema otvorene smjene.</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="text-sm">Smjena<select value={oznaka} onChange={(event) => setOznaka(event.target.value as "I" | "II")} className="mt-1 w-full rounded-lg border border-stone-300 p-2"><option value="I">I · 06–14</option><option value="II">II · 14–23</option></select></label>
+            <label className="pole">Smjena<select value={oznaka} onChange={(event) => setOznaka(event.target.value as "I" | "II")} className="input"><option value="I">I · 06–14</option><option value="II">II · 14–23</option></select></label>
           </div>
           <fieldset className="mt-3">
             <legend className="text-sm font-medium">Početni popis šanka</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {artikliSanka.map((artikal) => <label key={artikal.id} className="flex items-center justify-between gap-3 text-sm">{artikal.naziv}<span className="flex items-center gap-2"><input aria-label={`Početno stanje: ${artikal.naziv}`} type="number" min="0" step="0.001" value={pocetniPopis[artikal.naziv] ?? "0"} onChange={(event) => setPocetniPopis((stanje) => ({ ...stanje, [artikal.naziv]: event.target.value }))} className="w-28 rounded-lg border border-stone-300 p-2" /><span className="text-stone-500">{artikal.jedinica}</span></span></label>)}
+              {artikliSanka.map((artikal) => <label key={artikal.id} className="flex items-center justify-between gap-3 text-sm">{artikal.naziv}<span className="flex items-center gap-2"><input aria-label={`Početno stanje: ${artikal.naziv}`} type="number" min="0" step="0.001" value={pocetniPopis[artikal.naziv] ?? "0"} onChange={(event) => setPocetniPopis((stanje) => ({ ...stanje, [artikal.naziv]: event.target.value }))} className="input w-28" /><span className="muted">{artikal.jedinica}</span></span></label>)}
             </div>
           </fieldset>
-          <button type="button" disabled={radi} onClick={() => void otvori()} className="mt-3 min-h-11 rounded-lg bg-amber-500 px-4 font-semibold text-white disabled:opacity-40">Preuzmi smjenu</button>
+          <button type="button" disabled={radi} onClick={() => void otvori()} className="btn btn-primary mt-3">Preuzmi smjenu</button>
         </div>
       )}
       {zatvaranjeDana && <div className="mt-4 border-t border-stone-200 pt-4">
-        <button type="button" disabled={radi || Boolean(otvorena)} onClick={() => void zatvoriDan()} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-800 disabled:opacity-40">Zatvori dan</button>
+        <button type="button" disabled={radi || Boolean(otvorena)} onClick={() => void zatvoriDan()} className="btn btn-warn">Zatvori dan</button>
       </div>}
       <ul className="mt-4 divide-y divide-stone-100">
         {smjene.filter((smjena) => smjena.status === "zatvorena").slice(0, 5).map((smjena) => (

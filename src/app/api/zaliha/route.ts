@@ -77,13 +77,17 @@ export async function PATCH(request: Request) {
   if (rezultat.data.prodajnaCijena !== undefined) {
     promjena.prodajna_cijena = rezultat.data.prodajnaCijena;
   }
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("zaliha_artikli")
     .update(promjena)
-    .eq("id", rezultat.data.id);
+    .eq("id", rezultat.data.id)
+    .select("id");
   if (error) {
     console.error("Izmjena artikla zalihe nije uspjela:", error);
     return NextResponse.json({ greska: "Artikal nije moguće izmijeniti." }, { status: 422 });
+  }
+  if (data.length === 0) {
+    return NextResponse.json({ greska: "Artikal zalihe nije pronađen." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

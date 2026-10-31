@@ -1,10 +1,5 @@
-import { RoleNavigation } from "@/components/RoleNavigation";
+import { AppShell } from "@/components/AppShell";
 
 export default function MesnicaLayout({ children }: LayoutProps<"/mesnica">) {
-  return (
-    <div className="role-shell">
-      {children}
-      <RoleNavigation role="mesnica" />
-    </div>
-  );
+  return <AppShell uloga="mesnica">{children}</AppShell>;
 }

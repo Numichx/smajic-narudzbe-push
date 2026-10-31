@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { jeBesplatanPrilog } from "../domain/besplatniPrilozi";
 import { izracunajPopisPecenjare } from "../domain/pecenjara";
+import { resolveSupabaseRuntimeConfiguration } from "../supabase/config";
 
 type DemoProduct = {
   id: string;
@@ -217,8 +219,8 @@ async function initialState(): Promise<DemoState> {
   }));
   const recipeInput: [string, string, number][] = [
     ["Natur šnicla", "Teletina", 0.2],
-    ["Ćevapi - velika porcija", "Ćevapi", 1],
-    ["Ćevapi - velika porcija", "Lepinja", 2],
+    ["Ćevapi – velika porcija", "Ćevapi", 1],
+    ["Ćevapi – velika porcija", "Lepinja", 2],
     ["Pomfrit", "Pomfrit", 0.2],
   ];
   const recepti = new Map<string, DemoState["recepti"][number]>();
@@ -326,18 +328,6 @@ function openBillForTable(state: DemoState, tableId: number): DemoBill | undefin
   return state.racuni.find((bill) => bill.status === "otvoren" && bill.stolovi.includes(tableId));
 }
 
-function freeSideAllowed(product: DemoProduct, sideName: string): boolean {
-  const name = product.naziv.toLocaleLowerCase("bs");
-  const side = sideName.toLocaleLowerCase("bs");
-  if (["jela-po-narudzbi", "piletina"].includes(product.kategorija_id) && !name.includes("mućkalica")) return side === "pomfrit";
-  if (product.kategorija_id === "kuhana-jela" && name.startsWith("lešo teletina")) return side === "povrće";
-  if (product.kategorija_id === "kuhana-jela" && name.startsWith("gulaš")) return ["pire", "riža", "makaroni"].includes(side);
-  if (product.kategorija_id === "riba") return ["pomfrit", "krompir salata"].includes(side);
-  if (product.kategorija_id === "pecenja" && name.includes("teletina ispod sača")) return ["pekarski krompir", "pomfrit"].includes(side);
-  if (product.kategorija_id === "rostilj" && !name.includes("ćevap") && !name.includes("sudžuk")) return side === "pomfrit";
-  return false;
-}
-
 export async function demoMenu() {
   const state = await readState();
   return {
@@ -394,7 +384,7 @@ export async function demoCreateOrder(input: {
           !(side.kategorija_id === "salate" && side.naziv.toLocaleLowerCase("bs").includes("krompir"))) {
           throw new Error("Izabrani artikal ne može biti prilog.");
         }
-        if ((addon.standard && addon.poseban) || (addon.standard && !freeSideAllowed(parent, side.naziv))) {
+        if ((addon.standard && addon.poseban) || (addon.standard && !jeBesplatanPrilog(parent, side.naziv))) {
           throw new Error("Izabrani standardni prilog nije dozvoljen uz ovo jelo.");
         }
       }
@@ -634,10 +624,16 @@ export async function demoTransfer(input: { from: number; to: number; splitBillI
   });
 }
 
-export async function demoReservations(day: string) {
+export async function demoReservations(from: string, to: string) {
   const state = await readState();
+  const fromTime = Date.parse(from);
+  const toTime = Date.parse(to);
   return {
-    rezervacije: state.reservations.filter((entry) => entry.rezervisano_za.slice(0, 10) === day)
+    rezervacije: state.reservations
+      .filter((entry) => {
+        const time = Date.parse(entry.rezervisano_za);
+        return time >= fromTime && time < toTime;
+      })
       .sort((a, b) => a.rezervisano_za.localeCompare(b.rezervisano_za)),
   };
 }
@@ -1259,11 +1255,13 @@ export async function demoCloseBusinessDay(actor: string) {
   });
 }
 
-export async function demoIssuedOrdersSince(from: string) {
+export async function demoIssuedOrdersSince(from: string, waiter: string) {
   const state = await readState();
+  const fromTime = Date.parse(from);
   return {
     obavijesti: state.racuni.flatMap((bill) => bill.narudzbe)
-      .filter((order) => order.status === "Izdato" && order.izmijenjeno_at >= from)
+      .filter((order) => order.status === "Izdato" && order.kreirao_ime === waiter &&
+        Date.parse(order.izmijenjeno_at) >= fromTime)
       .sort((a, b) => a.izmijenjeno_at.localeCompare(b.izmijenjeno_at))
       .slice(0, 50)
       .map((order) => ({
@@ -1285,5 +1283,5 @@ function awaitlessButcherDebt(state: DemoState, waiterName: string): number {
 }
 
 export function isDemoMode(): boolean {
-  return !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return resolveSupabaseRuntimeConfiguration().mode === "demo";
 }

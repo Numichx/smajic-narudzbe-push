@@ -45,19 +45,19 @@ export function RacuniPregled() {
   }, [ucitaj]);
 
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-6 text-stone-900">
-      <div className="mx-auto max-w-5xl">
-        <Link href="/konobar/stolovi" className="text-sm text-amber-800 hover:underline">← Stolovi</Link>
-        <h1 className="mt-1 text-2xl font-bold">Otvoreni računi</h1>
-        {greska && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{greska}</p>}
-        {racuni.length === 0 && !greska ? <p className="mt-4 rounded-xl bg-white p-4 text-sm">Nema otvorenih računa.</p> : (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <main className="contents">
+      <div className="contents">
+        <Link href="/konobar/stolovi" className="btn-link">← Stolovi</Link>
+        <h1 className="page-title mt-1">Otvoreni računi</h1>
+        {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
+        {racuni.length === 0 && !greska ? <p className="card card-pad mt-4 small">Nema otvorenih računa.</p> : (
+          <ul className="kpi-row mt-4">
             {racuni.map((racun) => (
-              <li key={racun.id} className="rounded-xl border border-stone-200 bg-white p-4">
+              <li key={racun.id} className="card card-pad">
                 <div className="flex justify-between gap-2"><strong>Račun #{racun.broj}</strong><span className="text-sm">{racun.ukupno.toFixed(2)} KM</span></div>
-                <p className="mt-2 text-sm text-stone-600">{racun.stolovi.map((sto) => sto.naziv).join(", ")} · {racun.konobar}</p>
-                <p className="mt-1 text-xs text-stone-500">{racun.cekaNaplatu ? "Čeka naplatu" : `Otvoren ${racun.minute} min`}{racun.podijeljenoNa ? ` · ${racun.podijeljenoNa} osoba` : ""}</p>
-                <Link href={`/konobar/stolovi/${racun.stoId}`} className="mt-3 inline-block rounded-lg bg-stone-900 px-3 py-2 text-sm font-medium text-white">Otvori račun</Link>
+                <p className="small muted mt-2">{racun.stolovi.map((sto) => sto.naziv).join(", ")} · {racun.konobar}</p>
+                <p className="tiny muted mt-1">{racun.cekaNaplatu ? "Čeka naplatu" : `Otvoren ${racun.minute} min`}{racun.podijeljenoNa ? ` · ${racun.podijeljenoNa} osoba` : ""}</p>
+                <Link href={`/konobar/stolovi/${racun.stoId}`} className="btn btn-primary btn-sm mt-3">Otvori račun</Link>
               </li>
             ))}
           </ul>

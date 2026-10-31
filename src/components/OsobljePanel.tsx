@@ -98,27 +98,27 @@ export function OsobljePanel() {
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-4">
-      <h2 className="text-lg font-bold">Osoblje</h2>
-      {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
+    <section className="card card-pad mt-6">
+      <h2 className="section-title">Osoblje</h2>
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       <form onSubmit={(event) => void sacuvaj(event)} className="mt-3 grid gap-2 sm:grid-cols-4">
-        <label className="text-sm">Ime<input required minLength={2} maxLength={80} value={ime} onChange={(event) => setIme(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
-        <label className="text-sm">Uloga<select value={uloga} onChange={(event) => setUloga(event.target.value as typeof uloga)} className="mt-1 w-full rounded-lg border border-stone-300 p-2">{ULOGE.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        <label className="text-sm">PIN (4–8 cifara)<input required type="password" inputMode="numeric" pattern="[0-9]{4,8}" minLength={4} maxLength={8} value={pin} onChange={(event) => setPin(event.target.value)} className="mt-1 w-full rounded-lg border border-stone-300 p-2" /></label>
+        <label className="pole">Ime<input required minLength={2} maxLength={80} value={ime} onChange={(event) => setIme(event.target.value)} className="input" /></label>
+        <label className="pole">Uloga<select value={uloga} onChange={(event) => setUloga(event.target.value as typeof uloga)} className="input">{ULOGE.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+        <label className="pole">PIN (4–8 cifara)<input required type="password" inputMode="numeric" pattern="[0-9]{4,8}" minLength={4} maxLength={8} value={pin} onChange={(event) => setPin(event.target.value)} className="input" /></label>
         <div className="flex items-end gap-2">
-          <button disabled={radi} className="min-h-10 rounded-lg bg-stone-900 px-4 text-sm font-semibold text-white disabled:opacity-50">{uredjuje ? "Sačuvaj" : "Dodaj osobu"}</button>
-          {uredjuje && <button type="button" onClick={() => { setUredjuje(null); setIme(""); setPin(""); }} className="text-sm underline">Odustani</button>}
+          <button disabled={radi} className="btn btn-primary">{uredjuje ? "Sačuvaj" : "Dodaj osobu"}</button>
+          {uredjuje && <button type="button" onClick={() => { setUredjuje(null); setIme(""); setPin(""); }} className="btn-link">Odustani</button>}
         </div>
       </form>
-      <p className="mt-2 text-xs text-stone-500">PIN se čuva kao hash i ne može se naknadno prikazati.</p>
+      <p className="tiny muted mt-2">PIN se čuva kao hash i ne može se naknadno prikazati.</p>
       <ul className="mt-4 divide-y divide-stone-100">
         {zaposlenici.map((osoba) => (
           <li key={osoba.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
             <span className={osoba.aktivan ? "" : "text-stone-400"}>{osoba.ime} · {ULOGE.find(([id]) => id === osoba.uloga)?.[1] ?? osoba.uloga}{osoba.aktivan ? "" : " · deaktiviran"}</span>
             <div className="flex gap-2">
-              <button type="button" onClick={() => { setUredjuje(osoba); setIme(osoba.ime); setUloga(osoba.uloga as typeof uloga); setPin(""); }} className="rounded border border-stone-300 px-3 py-1 text-sm">Izmijeni / novi PIN</button>
-              <button type="button" disabled={radi} onClick={() => void postaviAktivnost(osoba)} className="rounded border border-stone-300 px-3 py-1 text-sm disabled:opacity-50">{osoba.aktivan ? "Deaktiviraj" : "Aktiviraj"}</button>
+              <button type="button" onClick={() => { setUredjuje(osoba); setIme(osoba.ime); setUloga(osoba.uloga as typeof uloga); setPin(""); }} className="btn btn-ghost btn-sm">Izmijeni / novi PIN</button>
+              <button type="button" disabled={radi} onClick={() => void postaviAktivnost(osoba)} className="btn btn-ghost btn-sm">{osoba.aktivan ? "Deaktiviraj" : "Aktiviraj"}</button>
             </div>
           </li>
         ))}

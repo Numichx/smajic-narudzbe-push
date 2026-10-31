@@ -41,12 +41,15 @@ export async function GET(request: Request) {
   const naplaceno = stavke.filter((stavka) => stavka.nacin !== "dug");
   const promet = naplaceno.reduce((suma, stavka) => suma + Number(stavka.ukupno), 0);
   const baksis = stavke.reduce((suma, stavka) => suma + Number(stavka.baksis), 0);
+  const dug = stavke
+    .filter((stavka) => stavka.nacin === "dug")
+    .reduce((suma, stavka) => suma + Number(stavka.ukupno), 0);
   return NextResponse.json({
     period: Number(rezultat.data),
     ime: sesija.ime,
     brojRacuna: stavke.length,
     naplaceno: Math.round(promet * 100) / 100,
-    dug: stavke.filter((stavka) => stavka.nacin === "dug").reduce((suma, stavka) => suma + Number(stavka.ukupno), 0),
+    dug: Math.round(dug * 100) / 100,
     prosjecanRacun: naplaceno.length ? Math.round((promet / naplaceno.length) * 100) / 100 : 0,
     baksis: Math.round(baksis * 100) / 100,
   });

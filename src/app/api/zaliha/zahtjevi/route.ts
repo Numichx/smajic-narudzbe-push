@@ -119,14 +119,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ rezultat: data });
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("zahtjevi_mesnice")
     .update({ status: "nema_na_stanju", isporucio_ime: sesija.ime, zavrseno_at: new Date().toISOString() })
     .eq("id", rezultat.data.zahtjevId)
-    .eq("status", "nov");
+    .eq("status", "nov")
+    .select("id");
   if (error) {
     console.error("Zatvaranje zahtjeva nije uspjelo:", error);
     return NextResponse.json({ greska: "Zahtjev nije moguće zatvoriti." }, { status: 422 });
+  }
+  if (data.length === 0) {
+    return NextResponse.json({ greska: "Otvoreni zahtjev nije pronađen." }, { status: 409 });
   }
   return NextResponse.json({ ok: true });
 }

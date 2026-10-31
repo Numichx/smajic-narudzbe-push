@@ -5,7 +5,7 @@ export default function KuhinjaPage() {
   return (
     <>
       <RedStanice stanica="kuhinja" naslov="Kuhinja" />
-      <div id="zahtjevi" className="mx-auto -mt-2 mb-6 w-full max-w-6xl px-4">
+      <div id="zahtjevi" className="mt-6">
         <ZahtjevMesnici />
       </div>
     </>

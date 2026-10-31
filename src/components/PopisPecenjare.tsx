@@ -152,7 +152,7 @@ export function PopisPecenjare() {
     korak: "1" | "0.001" | "0.01",
   ) {
     return (
-      <label className="text-sm" key={name}>
+      <label className="pole" key={name}>
         {label}
         <input
           aria-label={label}
@@ -161,7 +161,7 @@ export function PopisPecenjare() {
           step={korak}
           value={unos[name]}
           onChange={(event) => promijeni(name, event.target.value)}
-          className="mt-1 w-full rounded-lg border border-stone-300 p-2"
+          className="input"
         />
       </label>
     );
@@ -170,18 +170,18 @@ export function PopisPecenjare() {
   const aktivniPopis = Boolean(popis && !popis.zatvoreno_at);
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+    <section className="card card-pad">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Popis pečenjare po smjeni</h2>
-        <button type="button" onClick={() => void ucitaj()} className="text-sm underline">
+        <h2 className="section-title">Popis pečenjare po smjeni</h2>
+        <button type="button" onClick={() => void ucitaj()} className="btn-link">
           Osvježi
         </button>
       </div>
-      <p className="mt-1 text-sm text-stone-600">
+      <p className="small muted mt-1">
         Pazar po popisu računa koke po 14 KM i janjetinu po 50 KM/kg.
       </p>
-      {greska && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-800">{greska}</p>}
-      {poruka && <p role="status" className="mt-3 rounded bg-emerald-50 p-2 text-sm text-emerald-800">{poruka}</p>}
+      {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
 
       {aktivnaSmjena ? (
         <div className="mt-4 border-t border-stone-200 pt-4">
@@ -206,14 +206,14 @@ export function PopisPecenjare() {
                   pocetneKokeSirove: broj(unos.pocetneKokeSirove),
                   pocetnaJanjetinaKg: broj(unos.pocetnaJanjetinaKg),
                 })}
-                className="mt-3 min-h-11 rounded-lg bg-amber-500 px-4 font-semibold text-white disabled:opacity-40"
+                className="btn btn-primary mt-3"
               >
                 Sačuvaj početni popis
               </button>
             </fieldset>
           ) : aktivniPopis ? (
             <div className="mt-3">
-              <p className="text-sm text-stone-600">
+              <p className="small muted">
                 Početno: {popis.pocetne_koke_pecene} pečenih + {popis.pocetne_koke_sirove} sirovih koka,
                 {" "}{Number(popis.pocetna_janjetina_kg).toFixed(3)} kg janjetine.
               </p>
@@ -228,9 +228,9 @@ export function PopisPecenjare() {
                 </div>
               </fieldset>
               {pregled.greska ? (
-                <p role="alert" className="mt-3 text-sm text-red-700">{pregled.greska}</p>
+                <p role="alert" className="alert alert-danger mt-3">{pregled.greska}</p>
               ) : pregled.rezultat && (
-                <div className="mt-3 rounded-xl bg-stone-50 p-3 text-sm">
+                <div className="panel mt-3 small">
                   <p>Prodane koke: <strong>{pregled.rezultat.prodaneKoke}</strong></p>
                   <p>Prodana janjetina: <strong>{pregled.rezultat.prodanaJanjetinaKg.toFixed(3)} kg</strong></p>
                   <p>Pazar po popisu: <strong>{prikaziIznos(pregled.rezultat.pazarPoPopisu)}</strong></p>
@@ -248,17 +248,17 @@ export function PopisPecenjare() {
                   preostalaJanjetinaKg: broj(unos.preostalaJanjetinaKg),
                   predaniPazar: broj(unos.predaniPazar),
                 })}
-                className="mt-3 min-h-11 rounded-lg bg-stone-900 px-4 font-semibold text-white disabled:opacity-40"
+                className="btn btn-primary mt-3"
               >
                 Zaključi popis pečenjare
               </button>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-emerald-800">Popis pečenjare za ovu smjenu je zaključen.</p>
+            <p className="alert alert-ok mt-3">Popis pečenjare za ovu smjenu je zaključen.</p>
           )}
         </div>
       ) : (
-        <p className="mt-4 text-sm text-stone-600">
+        <p className="small muted mt-4">
           Nema otvorene smjene. Prvo preuzmite smjenu u panelu šefice ili šanka.
         </p>
       )}
@@ -280,7 +280,7 @@ export function PopisPecenjare() {
                       {" "}razlika {prikaziIznos(stavka.razlika)}
                     </span>
                   </span>
-                ) : <span className="text-xs text-amber-800">Otvoren</span>}
+                ) : <span className="badge badge-open">Otvoren</span>}
               </li>
             ))}
           </ul>

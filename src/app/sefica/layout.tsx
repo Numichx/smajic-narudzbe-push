@@ -1,10 +1,5 @@
-import { RoleNavigation } from "@/components/RoleNavigation";
+import { AppShell } from "@/components/AppShell";
 
 export default function SeficaLayout({ children }: LayoutProps<"/sefica">) {
-  return (
-    <div className="role-shell">
-      {children}
-      <RoleNavigation role="sefica" />
-    </div>
-  );
+  return <AppShell uloga="sefica">{children}</AppShell>;
 }

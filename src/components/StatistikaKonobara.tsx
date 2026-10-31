@@ -34,19 +34,19 @@ export function StatistikaKonobara() {
     return () => window.clearTimeout(timer);
   }, [ucitaj]);
   return (
-    <main className="min-h-dvh bg-stone-100 px-4 py-6 text-stone-900">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="text-2xl font-bold">Moja statistika</h1>
-        <label className="mt-4 inline-block text-sm">Period<select value={dani} onChange={(event) => setDani(event.target.value)} className="ml-2 rounded-lg border border-stone-300 bg-white p-2"><option value="1">Danas</option><option value="7">7 dana</option><option value="30">30 dana</option></select></label>
-        {greska && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{greska}</p>}
-        {statistika && <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[
+    <main className="contents">
+      <div className="contents">
+        <h1 className="page-title">Moja statistika</h1>
+        <label className="pole mt-4">Period<select value={dani} onChange={(event) => setDani(event.target.value)} className="input w-auto"><option value="1">Danas</option><option value="7">7 dana</option><option value="30">30 dana</option></select></label>
+        {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
+        {statistika && <section className="kpi-row mt-4">{[
           ["Konobar", statistika.ime],
           ["Računi", String(statistika.brojRacuna)],
           ["Naplaceno", `${statistika.naplaceno.toFixed(2)} KM`],
           ["Dug gostiju", `${statistika.dug.toFixed(2)} KM`],
           ["Prosječan račun", `${statistika.prosjecanRacun.toFixed(2)} KM`],
           ["Bakšiš (vidi samo konobar)", `${statistika.baksis.toFixed(2)} KM`],
-        ].map(([label, value]) => <article key={label} className="rounded-xl border border-stone-200 bg-white p-4"><p className="text-sm text-stone-500">{label}</p><p className="mt-1 text-xl font-bold">{value}</p></article>)}</section>}
+        ].map(([label, value]) => <article key={label} className="kpi"><p className="label">{label}</p><p className="value">{value}</p></article>)}</section>}
       </div>
     </main>
   );
