@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     p_promjena: rezultat.data.promjena,
     p_razlog: rezultat.data.razlog,
     p_akter_ime: sesija.ime,
+    p_akter_uloga: sesija.uloga,
   });
   if (error) {
     console.error("Promjena zalihe nije uspjela:", error);

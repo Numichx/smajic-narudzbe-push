@@ -947,8 +947,9 @@ export async function demoProcessStockRequest(input: {
     const item = state.zaliha.find((entry) => entry.id === request.zaliha_id)!;
     if (input.action === "isporuci") {
       if (input.quantity === undefined || input.quantity <= 0) throw new Error("Količina isporuke nije ispravna.");
-      const resulting = item.stanje + input.quantity;
-      if (resulting <= item.minimum) throw new Error("Isporuka mora podići stanje iznad minimuma.");
+      // Isporuka kuhinji: roba izlazi iz mesnice, stanje se smanjuje.
+      const resulting = item.stanje - input.quantity;
+      if (resulting < 0) throw new Error(`Nema dovoljno na stanju. Trenutno stanje: ${item.stanje} ${item.jedinica}.`);
       item.stanje = round(resulting);
       request.kolicina = input.quantity;
       request.status = "isporucen";

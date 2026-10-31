@@ -1118,6 +1118,7 @@ export type Database = {
       evidentiraj_promjenu_zalihe: {
         Args: {
           p_akter_ime: string
+          p_akter_uloga?: string
           p_promjena: number
           p_razlog: string
           p_zaliha_id: string
