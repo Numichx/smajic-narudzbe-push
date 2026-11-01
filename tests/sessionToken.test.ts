@@ -63,4 +63,21 @@ describe("potpisane sesije", () => {
       }),
     ).toBeNull();
   });
+
+  it("čuva oznaku lične prijave zaposlenika", () => {
+    vi.stubEnv("SESSION_SECRET", "test-session-secret");
+    const token = kreirajTokenSesije({
+      id: "zaposlenik-1",
+      ime: "Emir",
+      uloga: "konobar",
+      licni: true,
+    });
+
+    expect(procitajTokenSesije(token ?? undefined)).toEqual({
+      id: "zaposlenik-1",
+      ime: "Emir",
+      uloga: "konobar",
+      licni: true,
+    });
+  });
 });

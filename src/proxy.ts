@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server'
-import { updateSession } from '@/lib/middleware'
+import { zastitiZahtjev } from '@/lib/middleware'
 
 export async function proxy(request: NextRequest) {
-  return updateSession(request)
+  return zastitiZahtjev(request)
 }
 
 export const config = {

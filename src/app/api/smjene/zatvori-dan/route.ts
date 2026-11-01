@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { porukaZaKorisnika } from "@/lib/api/greske";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoCloseBusinessDay } from "@/lib/demo/store";
@@ -19,7 +20,7 @@ export async function POST() {
   const { data, error } = await supabase.rpc("zatvori_dan", { p_akter_ime: sesija.ime });
   if (error) {
     console.error("Zatvaranje dana nije uspjelo:", error);
-    return NextResponse.json({ greska: error.message }, { status: 422 });
+    return NextResponse.json({ greska: porukaZaKorisnika(error) }, { status: 422 });
   }
   return NextResponse.json({ zakljucak: data });
 }

@@ -82,5 +82,6 @@ export function procitajTokenSesije(token: string | undefined): SesijaZaposlenik
     id: kandidat.id,
     ime: kandidat.ime,
     uloga: kandidat.uloga,
+    ...(kandidat.licni === true ? { licni: true as const } : {}),
   };
 }

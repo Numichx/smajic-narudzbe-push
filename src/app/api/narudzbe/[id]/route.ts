@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { porukaZaKorisnika } from "@/lib/api/greske";
 import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -76,7 +77,7 @@ export async function PATCH(
   if (error) {
     console.error("Promjena statusa narudžbe nije uspjela:", error);
     return NextResponse.json(
-      { greska: error.message },
+      { greska: porukaZaKorisnika(error) },
       { status: 422 },
     );
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { porukaZaKorisnika } from "@/lib/api/greske";
 import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -66,7 +67,7 @@ export async function POST(
 
   if (error) {
     console.error("Naplata računa nije uspjela:", error);
-    return NextResponse.json({ greska: error.message }, { status: 422 });
+    return NextResponse.json({ greska: porukaZaKorisnika(error) }, { status: 422 });
   }
 
   return NextResponse.json({ naplata: data });
