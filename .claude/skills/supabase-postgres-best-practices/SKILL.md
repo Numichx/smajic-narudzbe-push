@@ -1,6 +1,7 @@
 ---
 name: supabase-postgres-best-practices
-description: "Postgres best practices maintained by Supabase, for Postgres running anywhere. Load this skill BEFORE writing or changing anything that lives in a Postgres database: creating or altering tables and columns (including choosing column types), schema design, migrations and declarative schema files, RLS policies and the tests that verify them, indexes, triggers, database functions, queues and scheduled jobs (pg_cron, pgmq), vector/semantic search (pgvector), and restoring dumps (pg_restore) or importing data. Also load it when diagnosing slow queries, high CPU, timeouts, EXPLAIN plans, connection exhaustion, locking, bloat, or rows visible to the wrong user or tenant. This is not just a performance guide — schema, migration, security, and SQL authoring tasks need these rules too, even for a one-column change or a single query."
+description: "Postgres best practices maintained by Supabase. Load before writing or changing schema, column types, migrations, RLS policies, indexes, triggers, database functions, pg_cron/pgmq jobs, pgvector search or data imports, and when diagnosing slow queries, EXPLAIN plans, timeouts, connection limits, locking, bloat or rows visible to the wrong tenant."
+model: sonnet
 license: MIT
 metadata:
   author: supabase
@@ -12,17 +13,7 @@ metadata:
 
 # Supabase Postgres Best Practices
 
-Comprehensive performance optimization guide for Postgres, maintained by Supabase. Contains rules across 8 categories, prioritized by impact to guide automated query optimization and schema design.
-
-## When to Apply
-
-Reference these guidelines when:
-- Writing SQL queries or designing schemas
-- Implementing indexes or query optimization
-- Reviewing database performance issues
-- Configuring connection pooling or scaling
-- Optimizing for Postgres-specific features
-- Working with Row-Level Security (RLS)
+Postgres rules from Supabase in 8 categories, ordered by impact.
 
 ## Rule Categories by Priority
 
@@ -39,26 +30,7 @@ Reference these guidelines when:
 
 ## How to Use
 
-Read individual rule files for detailed explanations and SQL examples:
-
-```
-references/query-missing-indexes.md
-references/query-partial-indexes.md
-references/_sections.md
-```
-
-Each rule file contains:
-- Brief explanation of why it matters
-- Incorrect SQL example with explanation
-- Correct SQL example with explanation
-- Optional EXPLAIN output or metrics
-- Additional context and references
-- Supabase-specific notes (when applicable)
-
-## References
-
-- https://www.postgresql.org/docs/current/
-- https://supabase.com/docs
-- https://wiki.postgresql.org/wiki/Performance_Optimization
-- https://supabase.com/docs/guides/database/overview
-- https://supabase.com/docs/guides/auth/row-level-security
+Read only the 1–2 rule files in `references/` whose prefix matches the task
+(for example `references/schema-foreign-key-indexes.md`). Each has a short
+why, incorrect and correct SQL, and Supabase notes. Don't read the whole
+folder, `_contributing.md`, `_template.md` or `CHANGELOG.md`.
