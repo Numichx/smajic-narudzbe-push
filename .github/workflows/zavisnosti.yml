@@ -1,0 +1,31 @@
+# Provjera poznatih ranjivosti u npm zavisnostima.
+# Pada samo ako produkcijska zavisnost ima ranjivost visokog ili kritičnog
+# nivoa; puni izvještaj (i razvojne alate) samo ispisuje.
+name: Zavisnosti
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  schedule:
+    # Svakog ponedjeljka ujutro, da se nove ranjivosti vide i bez novog koda.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Izvještaj za sve zavisnosti
+        run: npm audit || true
+      - name: Produkcijske zavisnosti bez visokih ranjivosti
+        run: npm audit --omit=dev --audit-level=high

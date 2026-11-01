@@ -36,20 +36,34 @@ key iz Supabase Dashboarda:
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 SESSION_SECRET=
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` mora pripadati istom projektu kao URL i koristi se
-isključivo na serveru. Ne stavljati ga u `NEXT_PUBLIC_` varijablu niti u
-repozitorij. Nakon izmjene `.env.local` ponovo pokrenuti Next.js. U produkciji
-postaviti dugu, nasumičnu vrijednost `SESSION_SECRET` i zasebno podešen Supabase
-projekat.
+`SUPABASE_SECRET_KEY` (stariji naziv: `SUPABASE_SERVICE_ROLE_KEY`, i dalje
+podržan) mora pripadati istom projektu kao URL i koristi se isključivo na
+serveru. Ne stavljati ga u `NEXT_PUBLIC_` varijablu niti u repozitorij. Nakon
+izmjene `.env.local` ponovo pokrenuti Next.js. U produkciji postaviti dugu,
+nasumičnu vrijednost `SESSION_SECRET` i zasebno podešen Supabase projekat.
+Promjena `SESSION_SECRET` odjavljuje sve uređaje odjednom.
 
-Aplikacija koristi vlastitu prijavu pomoću PIN-a; Supabase Auth middleware iz
-generičkih primjera ne upravlja prijavom niti pristupom ulogama. Proxy osvježava
-Supabase sesiju samo kada je Supabase konfigurisan; aplikacijske uloge koriste
-vlastitu potpisanu PIN sesiju.
+Aplikacija koristi vlastitu prijavu pomoću PIN-a, a ne Supabase Auth. Preglednik
+nikad ne razgovara direktno sa Supabaseom: sve ide preko API ruta na serveru,
+a javni (publishable) ključ nema nikakva prava nad tabelama. Proxy stranicu
+uloge (npr. `/sefica`) otvara samo prijavljenoj osobi te uloge; API rute uz to
+same provjeravaju sesiju i ulogu. Kada šefica deaktivira zaposlenika, njegova
+lična sesija prestaje važiti u roku od 30 sekundi.
+
+## Sigurnost
+
+- Sigurnosna zaglavlja (HSTS, zabrana `<iframe>`, `nosniff`, Referrer-Policy,
+  Permissions-Policy) postavlja `next.config.ts`.
+- Prijava PIN-om ima ograničenje pokušaja u bazi (`pin_pokusaji`), a baza odbija
+  lake PIN-ove (npr. 1111, 1234, 2580, godine) pri unosu novog PIN-a.
+- Greške iz baze do preglednika stižu samo kao poslovne poruke naših SQL
+  funkcija (SQLSTATE P0001); tehnički detalji ostaju u logu servera.
+- Zavisnosti se provjeravaju sa `npm audit` u workflowu „Zavisnosti” (na svaki
+  push, pull request i jednom sedmično).
 
 Početni PIN-ovi su `0000` za osoblje, `1234` za šeficu i `1111` za poseban
 prilog. Zamijeniti ih prije stvarnog rada. Cijene pića navedene kao raspon u

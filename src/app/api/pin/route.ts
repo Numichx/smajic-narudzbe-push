@@ -137,6 +137,8 @@ export async function POST(request: Request) {
     id: idZaposlenika,
     ime: imeZaSesiju,
     uloga,
+    // Konobar se prijavljuje kao zaposlenik iz baze; ostale uloge PIN-om uloge.
+    ...(uloga === "konobar" ? { licni: true as const } : {}),
   });
 
   if (!tokenSesije) {

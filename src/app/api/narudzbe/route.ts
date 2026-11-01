@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { porukaZaKorisnika } from "@/lib/api/greske";
 import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
     // sve ostalo je privremena greška pa offline red smije pokušati ponovo.
     const odbijeno = error.code === "P0001" || /^2[23]/.test(error.code ?? "");
     return odbijeno
-      ? NextResponse.json({ greska: error.message }, { status: 422 })
+      ? NextResponse.json({ greska: porukaZaKorisnika(error, "Narudžba sadrži neispravne podatke.") }, { status: 422 })
       : NextResponse.json(
           { greska: "Narudžbu trenutno nije moguće sačuvati. Pokušajte ponovo." },
           { status: 503 },

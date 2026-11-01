@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { porukaZaKorisnika } from "@/lib/api/greske";
 import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   });
   if (error) {
     console.error("Otvaranje smjene nije uspjelo:", error);
-    return NextResponse.json({ greska: error.message }, { status: 422 });
+    return NextResponse.json({ greska: porukaZaKorisnika(error) }, { status: 422 });
   }
   return NextResponse.json({ smjenaId: data }, { status: 201 });
 }
@@ -126,7 +127,7 @@ export async function PATCH(request: Request) {
   });
   if (error) {
     console.error("Zatvaranje smjene nije uspjelo:", error);
-    return NextResponse.json({ greska: error.message }, { status: 422 });
+    return NextResponse.json({ greska: porukaZaKorisnika(error) }, { status: 422 });
   }
   return NextResponse.json({ izvjestaj: data });
 }

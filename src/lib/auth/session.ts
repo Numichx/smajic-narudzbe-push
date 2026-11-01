@@ -31,4 +31,6 @@ export type SesijaZaposlenika = {
   id: string;
   ime: string;
   uloga: UlogaZaposlenika;
+  /** Prijava ličnim PIN-om zaposlenika (id je iz tabele zaposlenici), a ne PIN-om uloge. */
+  licni?: true;
 };

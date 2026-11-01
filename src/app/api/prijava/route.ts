@@ -62,7 +62,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ greska: "Podaci zaposlenika nisu ispravni." }, { status: 500 });
   }
 
-  const token = kreirajTokenSesije({ id: pogodak.id, ime: pogodak.ime, uloga: pogodak.uloga });
+  const token = kreirajTokenSesije({
+    id: pogodak.id,
+    ime: pogodak.ime,
+    uloga: pogodak.uloga,
+    licni: true,
+  });
   if (!token) {
     return NextResponse.json({ greska: "Nedostaje SESSION_SECRET za sigurnu sesiju." }, { status: 503 });
   }
