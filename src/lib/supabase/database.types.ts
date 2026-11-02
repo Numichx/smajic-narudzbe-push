@@ -150,6 +150,7 @@ export type Database = {
           kusur: number
           nacin: string
           naplatio_ime: string
+          popust: number
           racun_id: string
           ukupno: number
         }
@@ -174,6 +175,7 @@ export type Database = {
           kusur?: number
           nacin?: string
           naplatio_ime?: string
+          popust?: number
           racun_id?: string
           ukupno?: number
         }
@@ -567,6 +569,9 @@ export type Database = {
           konobar_ime: string
           otvoren_at: string
           podijeljeno_na: number | null
+          popust_odobrio: string | null
+          popust_procenat: number
+          popust_razlog: string | null
           status: string
           sto_id: number
           zatvoren_at: string | null
@@ -580,6 +585,9 @@ export type Database = {
           konobar_ime: string
           otvoren_at?: string
           podijeljeno_na?: number | null
+          popust_odobrio?: string | null
+          popust_procenat?: number
+          popust_razlog?: string | null
           status?: string
           sto_id: number
           zatvoren_at?: string | null
@@ -593,6 +601,9 @@ export type Database = {
           konobar_ime?: string
           otvoren_at?: string
           podijeljeno_na?: number | null
+          popust_odobrio?: string | null
+          popust_procenat?: number
+          popust_razlog?: string | null
           status?: string
           sto_id?: number
           zatvoren_at?: string | null
@@ -1193,6 +1204,16 @@ export type Database = {
       otvori_smjenu: {
         Args: { p_oznaka: string; p_popis_sanka: Json; p_preuzeo_ime: string }
         Returns: string
+      }
+      odobri_popust: {
+        Args: {
+          p_akter_ime: string
+          p_odobrio_ime: string
+          p_procenat: number
+          p_racun_id: string
+          p_razlog: string
+        }
+        Returns: Json
       }
       plati_racun: {
         Args: {

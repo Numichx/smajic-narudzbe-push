@@ -4,7 +4,7 @@ import path from "node:path";
 import { jeBesplatanPrilog, kolicinaPriloga } from "../domain/besplatniPrilozi";
 import { moguciKusur } from "../domain/naplata";
 import { izracunajPopisPecenjare } from "../domain/pecenjara";
-import { racunSpremanZaNaplatu } from "../domain/racun";
+import { primijeniPopust, racunSpremanZaNaplatu } from "../domain/racun";
 import { resolveSupabaseRuntimeConfiguration } from "../supabase/config";
 
 type DemoProduct = {
@@ -55,6 +55,9 @@ type DemoBill = {
   podijeljeno_na: number | null;
   status: "otvoren" | "zatvoren";
   narudzbe: DemoOrder[];
+  // Neobavezno: probno stanje sačuvano prije popusta nema ova polja.
+  popust_procenat?: number;
+  popust_razlog?: string | null;
 };
 
 type DemoCreateOrderResult = {
@@ -321,6 +324,10 @@ function round(value: number): number {
 }
 
 function billTotal(bill: DemoBill): number {
+  return primijeniPopust(billGross(bill), bill.popust_procenat ?? 0);
+}
+
+function billGross(bill: DemoBill): number {
   return round(bill.narudzbe.flatMap((order) => order.stavke_narudzbe).reduce((sum, item) =>
     sum + (item.stornirano ? 0 : item.cijena * item.kolicina +
       item.prilozi.reduce((sideSum, side) => sideSum + side.cijena, 0)), 0));
@@ -504,6 +511,9 @@ function billDetail(bill: DemoBill, state: DemoState) {
     otvoren_at: bill.otvoren_at, podijeljeno_na: bill.podijeljeno_na,
     stolovi: bill.stolovi.map((id) => ({ id, naziv: `Sto ${id}` })),
     ukupno: billTotal(bill),
+    bruto: billGross(bill),
+    popust_procenat: bill.popust_procenat ?? 0,
+    popust_razlog: bill.popust_razlog ?? null,
     sveIzdato: racunSpremanZaNaplatu(bill.narudzbe),
     narudzbe: bill.narudzbe.map((order) => ({
       ...order,
@@ -558,6 +568,17 @@ export async function demoPayBill(input: {
     bill.podijeljeno_na = input.split ?? null;
     state.dag.push({ id: randomUUID(), ime: input.actor, detalji: `Naplata računa ${bill.broj} · ${total.toFixed(2)} KM · ${input.method}`, vrijeme: payment.kreirano_at });
     return { naplata: payment };
+  });
+}
+
+export async function demoDiscountBill(input: { billId: string; percent: number; reason: string; actor: string }) {
+  return mutate((state) => {
+    const bill = state.racuni.find((entry) => entry.id === input.billId && entry.status === "otvoren");
+    if (!bill) throw new Error("Otvoreni račun nije pronađen.");
+    bill.popust_procenat = input.percent;
+    bill.popust_razlog = input.percent === 0 ? null : input.reason;
+    state.dag.push({ id: randomUUID(), ime: input.actor, detalji: `Popust ${input.percent} % na račun ${bill.broj}: ${input.reason} (odobrila šefica)`, vrijeme: new Date().toISOString() });
+    return { racun_id: bill.id, procenat: input.percent, ukupno: billTotal(bill) };
   });
 }
 

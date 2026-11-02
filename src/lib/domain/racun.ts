@@ -29,3 +29,14 @@ export function izracunajUkupno(stavke: StavkaRacuna[]): number {
 
   return zaokruziNaFening(ukupno);
 }
+
+export const RAZLOZI_POPUSTA = ["Obrok osoblja", "Častimo", "Stalni gost", "Reklamacija", "Drugo"] as const;
+
+/** Iznos za naplatu nakon popusta u procentima; isto zaokruživanje kao ukupno_racuna u bazi. */
+export function primijeniPopust(bruto: number, procenat: number): number {
+  provjeriIznos(bruto, "Bruto iznos");
+  if (!Number.isFinite(procenat) || procenat < 0 || procenat > 100) {
+    throw new RangeError("Popust mora biti između 0 i 100 %.");
+  }
+  return zaokruziNaFening(bruto * (1 - procenat / 100));
+}

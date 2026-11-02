@@ -3,7 +3,7 @@ import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoBillForTable } from "@/lib/demo/store";
-import { racunSpremanZaNaplatu } from "@/lib/domain/racun";
+import { primijeniPopust, racunSpremanZaNaplatu } from "@/lib/domain/racun";
 
 const RacunSchema = z.object({
   id: z.string().uuid(),
@@ -12,6 +12,8 @@ const RacunSchema = z.object({
   konobar_ime: z.string(),
   otvoren_at: z.string(),
   podijeljeno_na: z.number().nullable(),
+  popust_procenat: z.number(),
+  popust_razlog: z.string().nullable(),
   narudzbe: z.array(
     z.object({
       id: z.string().uuid(),
@@ -93,7 +95,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("racuni")
     .select(
-      "id, broj, sto_id, konobar_ime, otvoren_at, podijeljeno_na, narudzbe(id, broj, stanica, status, kreirano_at, stavke_narudzbe(id, naziv, jedinica, kolicina, cijena, napomena, prilozi, stornirano, storno_razlog, storno_vrijednost)), stolovi:racun_stolovi(stolovi(id, naziv))",
+      "id, broj, sto_id, konobar_ime, otvoren_at, podijeljeno_na, popust_procenat, popust_razlog, narudzbe(id, broj, stanica, status, kreirano_at, stavke_narudzbe(id, naziv, jedinica, kolicina, cijena, napomena, prilozi, stornirano, storno_razlog, storno_vrijednost)), stolovi:racun_stolovi(stolovi(id, naziv))",
     )
     .eq("id", povezaniRacun.racun_id)
     .eq("status", "otvoren")
@@ -129,7 +131,8 @@ export async function GET(
   return NextResponse.json({
     racun: {
       ...provjera.data,
-      ukupno: Math.round((ukupno + Number.EPSILON) * 100) / 100,
+      bruto: Math.round((ukupno + Number.EPSILON) * 100) / 100,
+      ukupno: primijeniPopust(ukupno, provjera.data.popust_procenat),
       sveIzdato: racunSpremanZaNaplatu(provjera.data.narudzbe),
     },
   });

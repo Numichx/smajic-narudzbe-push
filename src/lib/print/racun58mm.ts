@@ -9,6 +9,7 @@ type RacunZaStampu = {
   brojRacuna: string;
   stavke: StavkaZaStampu[];
   ukupno: number;
+  popust?: { procenat: number; iznos: number; razlog: string };
 };
 
 export function formatirajRacun58mm(racun: RacunZaStampu): string {
@@ -23,6 +24,9 @@ export function formatirajRacun58mm(racun: RacunZaStampu): string {
     "------------------------------",
     ...stavke,
     "------------------------------",
+    ...(racun.popust
+      ? [`Popust ${racun.popust.procenat} % (${racun.popust.razlog})  -${racun.popust.iznos.toFixed(2)} KM`]
+      : []),
     `UKUPNO: ${racun.ukupno.toFixed(2)} KM`,
   ].join("\n");
 }

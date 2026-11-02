@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { moguciKusur } from "@/lib/domain/naplata";
+import { RAZLOZI_POPUSTA } from "@/lib/domain/racun";
 import { formatirajRacun58mm } from "@/lib/print/racun58mm";
 import { Ikona } from "./Ikona";
 
@@ -21,6 +22,9 @@ type Racun = {
   id: string;
   broj: number;
   ukupno: number;
+  bruto: number;
+  popust_procenat: number;
+  popust_razlog: string | null;
   sveIzdato: boolean;
   stolovi: { id: number; naziv: string }[];
   narudzbe: {
@@ -47,6 +51,9 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
   const [podijeljenoNa, setPodijeljenoNa] = useState("");
   const [odabraniRazlog, setOdabraniRazlog] = useState<Record<string, string>>({});
   const [stoU, setStoU] = useState("");
+  const [popustProcenat, setPopustProcenat] = useState("100");
+  const [popustRazlog, setPopustRazlog] = useState<string>(RAZLOZI_POPUSTA[0]);
+  const [pinSefice, setPinSefice] = useState("");
   const [radi, setRadi] = useState(false);
 
   const ucitaj = useCallback(async () => {
@@ -166,6 +173,9 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
       brojRacuna: String(racun.broj),
       stavke: stavkeZaStampu,
       ukupno: racun.ukupno,
+      popust: racun.popust_procenat > 0
+        ? { procenat: racun.popust_procenat, iznos: racun.bruto - racun.ukupno, razlog: racun.popust_razlog ?? "" }
+        : undefined,
     });
     prozor.document.title = `Račun ${racun.broj}`;
     const stil = prozor.document.createElement("style");
@@ -312,6 +322,44 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
           <span>Za naplatu</span>
           <b>{racun.ukupno.toFixed(2)} KM</b>
         </div>
+        {racun.popust_procenat > 0 && (
+          <p className="small muted">
+            Bez popusta {racun.bruto.toFixed(2)} KM · popust {racun.popust_procenat} % ({racun.popust_razlog})
+          </p>
+        )}
+        <details className="mt-3">
+          <summary className="small bold">Popust, častimo, obrok osoblja</summary>
+          <div className="field mt-2">
+            <label htmlFor="popust-razlog">Razlog</label>
+            <select id="popust-razlog" value={popustRazlog} onChange={(event) => setPopustRazlog(event.target.value)} className="input">
+              {RAZLOZI_POPUSTA.map((razlog) => <option key={razlog}>{razlog}</option>)}
+            </select>
+          </div>
+          <div className="field mt-2">
+            <label htmlFor="popust-procenat">Popust (%), 0 uklanja popust</label>
+            <input id="popust-procenat" type="number" min={0} max={100} step="1" value={popustProcenat} onChange={(event) => setPopustProcenat(event.target.value)} className="input" />
+          </div>
+          <div className="field mt-2">
+            <label htmlFor="pin-sefice">PIN šefice</label>
+            <input id="pin-sefice" type="password" inputMode="numeric" autoComplete="off" value={pinSefice} onChange={(event) => setPinSefice(event.target.value)} className="input" />
+          </div>
+          <button
+            type="button"
+            disabled={radi || !pinSefice || popustProcenat === ""}
+            onClick={async () => {
+              const ok = await posalji(`/api/racuni/${racun.id}/popust`, {
+                procenat: Number(popustProcenat),
+                razlog: popustRazlog,
+                pin: pinSefice,
+              });
+              setPinSefice("");
+              if (ok) setPoruka("Popust je odobren i zapisan u dnevnik.");
+            }}
+            className="btn btn-ghost btn-block mt-2"
+          >
+            Odobri popust
+          </button>
+        </details>
         <div className="field">
           <label htmlFor="nacin-naplate">Način naplate</label>
           <select id="nacin-naplate" value={nacin} onChange={(event) => setNacin(event.target.value as typeof nacin)} className="input">
