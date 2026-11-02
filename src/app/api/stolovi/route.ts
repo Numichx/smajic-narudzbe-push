@@ -3,6 +3,7 @@ import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoTables } from "@/lib/demo/store";
+import { racunSpremanZaNaplatu } from "@/lib/domain/racun";
 
 const OtvoreniRacuniSchema = z.array(
   z.object({
@@ -113,9 +114,7 @@ export async function GET() {
             0,
             Math.floor((Date.now() - new Date(racun.otvoren_at).getTime()) / 60_000),
           ),
-          cekaNaplatu:
-            racun.narudzbe.length > 0 &&
-            racun.narudzbe.every((narudzba) => narudzba.status === "Izdato"),
+          cekaNaplatu: racunSpremanZaNaplatu(racun.narudzbe),
         },
       ] as const;
     }),

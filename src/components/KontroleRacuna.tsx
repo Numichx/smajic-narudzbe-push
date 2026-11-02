@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { moguciKusur } from "@/lib/domain/naplata";
 import { formatirajRacun58mm } from "@/lib/print/racun58mm";
 import { Ikona } from "./Ikona";
 
@@ -35,6 +36,8 @@ const RAZLOZI = ["Pogrešan unos", "Gost odustao", "Greška kuhinje", "Drugo"] a
 export function KontroleRacuna({ stoId }: { stoId: number }) {
   const [racun, setRacun] = useState<Racun | null>(null);
   const [greska, setGreska] = useState("");
+  // Greška učitavanja je odvojena: osvježavanje svakih 5 s ne smije brisati poruku o radnji.
+  const [greskaUcitavanja, setGreskaUcitavanja] = useState("");
   const [poruka, setPoruka] = useState("");
   const [ucitava, setUcitava] = useState(true);
   const [gostDao, setGostDao] = useState("");
@@ -51,13 +54,13 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
       const odgovor = await fetch(`/api/racuni/sto/${stoId}`, { cache: "no-store" });
       const podaci = await odgovor.json();
       if (!odgovor.ok) {
-        setGreska(podaci.greska ?? "Račun nije moguće učitati.");
+        setGreskaUcitavanja(podaci.greska ?? "Račun nije moguće učitati.");
         return;
       }
       setRacun(podaci.racun);
-      setGreska("");
+      setGreskaUcitavanja("");
     } catch {
-      setGreska("Nema veze sa serverom pri učitavanju računa.");
+      setGreskaUcitavanja("Nema veze sa serverom pri učitavanju računa.");
     } finally {
       setUcitava(false);
     }
@@ -76,7 +79,7 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
     () => racun?.narudzbe.flatMap((narudzba) => narudzba.stavke_narudzbe) ?? [],
     [racun],
   );
-  const kusurOcekivan = Math.max(0, Number(gostDao || 0) - (racun?.ukupno ?? 0));
+  const kusurOcekivan = moguciKusur(racun?.ukupno ?? 0, Number(gostDao || 0));
 
   async function posalji(url: string, tijelo: unknown) {
     setRadi(true);
@@ -112,8 +115,14 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
       setGreska("Iznos koji je gost dao mora pokriti račun.");
       return;
     }
-    if (nacin !== "dug" && kusur > dao - racun.ukupno) {
+    const najveciKusur = moguciKusur(racun.ukupno, dao);
+    if (nacin !== "dug" && kusur > najveciKusur) {
       setGreska("Vraćeni kusur ne može biti veći od mogućeg kusura.");
+      return;
+    }
+    // Prazno polje bi cijeli ostatak novca upisalo kao bakšiš.
+    if ((nacin === "gotovina" || nacin === "kombinovano") && najveciKusur > 0 && vraceniKusur.trim() === "") {
+      setGreska("Upišite vraćeni kusur. Ako gost ostatak ostavlja kao bakšiš, upišite 0.");
       return;
     }
     const uspjelo = await posalji(`/api/racuni/${racun.id}/naplata`, {
@@ -177,6 +186,7 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
         <div className="card-body">
           <p className="small muted">Na ovom stolu još nema otvorenog računa.</p>
           {greska && <div role="alert" className="alert alert-danger mt-3"><div>{greska}</div></div>}
+          {greskaUcitavanja && <div role="alert" className="alert alert-danger mt-3"><div>{greskaUcitavanja}</div></div>}
           {poruka && <div role="status" className="alert alert-ok mt-3"><div>{poruka}</div></div>}
         </div>
       </section>
@@ -342,6 +352,7 @@ export function KontroleRacuna({ stoId }: { stoId: number }) {
           <div className="alert alert-warn mt-3"><Ikona naziv="upozorenje" /><div>Naplata je dostupna kada sve stanice izdaju narudžbe.</div></div>
         )}
         {greska && <div role="alert" className="alert alert-danger mt-3"><div>{greska}</div></div>}
+        {greskaUcitavanja && <div role="alert" className="alert alert-danger mt-3"><div>{greskaUcitavanja}</div></div>}
         {poruka && <div role="status" className="alert alert-ok mt-3"><div>{poruka}</div></div>}
         <div className="pay-actions">
           <button type="button" disabled={radi || !racun.sveIzdato} onClick={() => void naplati()} className="btn btn-primary btn-lg btn-block">

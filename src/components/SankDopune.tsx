@@ -11,6 +11,8 @@ export function SankDopune() {
   const [proizvodId, setProizvodId] = useState("");
   const [kolicina, setKolicina] = useState("");
   const [greska, setGreska] = useState("");
+  // Greška učitavanja je odvojena: osvježavanje ne smije brisati poruku o radnji.
+  const [greskaUcitavanja, setGreskaUcitavanja] = useState("");
   const [poruka, setPoruka] = useState("");
   const [radi, setRadi] = useState(false);
 
@@ -19,15 +21,15 @@ export function SankDopune() {
       const response = await fetch("/api/sank/artikli", { cache: "no-store" });
       const body = await response.json();
       if (!response.ok) {
-        setGreska(body.greska ?? "Podatke šanka nije moguće učitati.");
+        setGreskaUcitavanja(body.greska ?? "Podatke šanka nije moguće učitati.");
         return;
       }
       setArtikli(body.artikli);
       setSmjena(body.smjena);
       setProizvodId((current) => current || body.artikli[0]?.id || "");
-      setGreska("");
+      setGreskaUcitavanja("");
     } catch {
-      setGreska("Nema veze sa serverom.");
+      setGreskaUcitavanja("Nema veze sa serverom.");
     }
   }, []);
 
@@ -74,6 +76,7 @@ export function SankDopune() {
         <p className="alert alert-warn mt-2">Nema otvorene smjene. Preuzmite smjenu da biste evidentirali dopune.</p>
       )}
       {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+      {greskaUcitavanja && <p role="alert" className="alert alert-danger mt-3">{greskaUcitavanja}</p>}
       {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       {smjena && (
         <form onSubmit={(event) => void evidentiraj(event)} className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem_auto]">

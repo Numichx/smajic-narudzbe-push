@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   kreirajTokenSesije,
+  kreirajTokenUredjaja,
   procitajTokenSesije,
+  procitajTokenUredjaja,
 } from "../src/lib/auth/sessionToken";
 
 describe("potpisane sesije", () => {
@@ -46,9 +48,23 @@ describe("potpisane sesije", () => {
       ime: "Emir",
       uloga: "konobar",
     });
-    vi.advanceTimersByTime(13 * 60 * 60 * 1000);
+    vi.advanceTimersByTime(17 * 60 * 60 * 1000);
+    expect(procitajTokenSesije(token ?? undefined)).not.toBeNull();
+    vi.advanceTimersByTime(2 * 60 * 60 * 1000);
 
     expect(procitajTokenSesije(token ?? undefined)).toBeNull();
+  });
+
+  it("prepoznaje samo potpisanu oznaku uređaja", () => {
+    vi.stubEnv("SESSION_SECRET", "test-session-secret");
+    const token = kreirajTokenUredjaja();
+    const sesija = kreirajTokenSesije({ id: "zaposlenik-1", ime: "Emir", uloga: "konobar" });
+
+    expect(procitajTokenUredjaja(token ?? undefined)).toBe(token?.split(".")[0]);
+    expect(procitajTokenUredjaja(`${token}x`)).toBeNull();
+    expect(procitajTokenUredjaja(undefined)).toBeNull();
+    // Potpis sesije ne vrijedi kao oznaka uređaja.
+    expect(procitajTokenUredjaja(sesija ?? undefined)).toBeNull();
   });
 
   it("ne izdaje sesiju u produkciji bez tajne", () => {

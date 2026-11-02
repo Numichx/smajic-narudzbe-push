@@ -48,6 +48,11 @@ export function praviloPriloga(jelo: Jelo): Pravilo {
   }
 }
 
+/** Uz jelo koje se mjeri na kilograme prilog je jedna porcija, bez obzira na težinu. */
+export function kolicinaPriloga(jedinicaJela: string, kolicinaJela: number): number {
+  return jedinicaJela === "kg" ? 1 : kolicinaJela;
+}
+
 export function jeBesplatanPrilog(jelo: Jelo, nazivPriloga: string): boolean {
   return praviloPriloga(jelo).dozvoljeni.includes(normalizuj(nazivPriloga));
 }

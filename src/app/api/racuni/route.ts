@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoOpenBills } from "@/lib/demo/store";
+import { racunSpremanZaNaplatu } from "@/lib/domain/racun";
 
 export async function GET() {
   const sesija = await procitajZahtjevSesiju();
@@ -48,7 +49,7 @@ export async function GET() {
       minute: Math.max(0, Math.floor((Date.now() - new Date(racun.otvoren_at).getTime()) / 60_000)),
       ukupno: Math.round((ukupno + Number.EPSILON) * 100) / 100,
       podijeljenoNa: racun.podijeljeno_na,
-      cekaNaplatu: racun.narudzbe.length > 0 && racun.narudzbe.every((narudzba) => narudzba.status === "Izdato"),
+      cekaNaplatu: racunSpremanZaNaplatu(racun.narudzbe),
     };
   });
   return NextResponse.json({ racuni });

@@ -48,6 +48,22 @@ function zahtjev(tijelo: unknown) {
 }
 
 describe("API prijave i obavijesti konobara", () => {
+  it("nakon prijave pamti uređaj, a izvještaj traži početak perioda", async () => {
+    const { POST } = await import("../src/app/api/pin/route");
+    const { GET } = await import("../src/app/api/izvjestaji/route");
+    expect((await POST(zahtjev({ uloga: "sefica", pin: "1234" }))).status).toBe(200);
+    expect(kolacici.get("uredjaj")).toBeTruthy();
+
+    const bezPocetka = await GET(new Request("http://localhost/api/izvjestaji?dani=1"));
+    expect(bezPocetka.status).toBe(400);
+
+    const url = new URL("http://localhost/api/izvjestaji?dani=1");
+    url.searchParams.set("od", new Date(Date.now() - 60_000).toISOString());
+    const odgovor = await GET(new Request(url));
+    expect(odgovor.status).toBe(200);
+    expect((await odgovor.json()).izvjestaj.naplaceno).toBe(0);
+  });
+
   it("prijavljuje evidentiranog konobara njegovim ličnim PIN-om", async () => {
     const demo = await import("../src/lib/demo/store");
     const { POST } = await import("../src/app/api/pin/route");

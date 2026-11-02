@@ -8,6 +8,8 @@ export function DugPecenjare() {
   const [dugovi, setDugovi] = useState<Dug[]>([]);
   const [iznosi, setIznosi] = useState<Record<string, string>>({});
   const [greska, setGreska] = useState("");
+  // Greška učitavanja je odvojena: osvježavanje ne smije brisati poruku o radnji.
+  const [greskaUcitavanja, setGreskaUcitavanja] = useState("");
   const [poruka, setPoruka] = useState("");
   const [radi, setRadi] = useState(false);
 
@@ -16,13 +18,13 @@ export function DugPecenjare() {
       const response = await fetch("/api/pecenjara/dug", { cache: "no-store" });
       const body = await response.json();
       if (!response.ok) {
-        setGreska(body.greska ?? "Dugovanja nije moguće učitati.");
+        setGreskaUcitavanja(body.greska ?? "Dugovanja nije moguće učitati.");
         return;
       }
       setDugovi(body.dugovi);
-      setGreska("");
+      setGreskaUcitavanja("");
     } catch {
-      setGreska("Nema veze sa serverom.");
+      setGreskaUcitavanja("Nema veze sa serverom.");
     }
   }, []);
 
@@ -73,6 +75,7 @@ export function DugPecenjare() {
           <button type="button" onClick={() => void ucitaj()} className="btn-link">Osvježi</button>
         </div>
         {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
+        {greskaUcitavanja && <p role="alert" className="alert alert-danger mt-3">{greskaUcitavanja}</p>}
         {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
         {dugovi.length === 0 ? <p className="small muted mt-3">Nema evidentiranih izdatih narudžbi.</p> : (
           <ul className="mt-3 space-y-3">

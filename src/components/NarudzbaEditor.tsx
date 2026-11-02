@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { KontroleRacuna } from "./KontroleRacuna";
 import { Ikona } from "./Ikona";
 import { dodajOfflineAkciju } from "@/lib/offline/queue";
-import { jeBesplatanPrilog, podrazumijevaniPrilog } from "@/lib/domain/besplatniPrilozi";
+import { jeBesplatanPrilog, kolicinaPriloga, podrazumijevaniPrilog } from "@/lib/domain/besplatniPrilozi";
 
 type Proizvod = {
   id: string;
@@ -109,7 +109,7 @@ export function NarudzbaEditor({ stoId }: { stoId: number }) {
     const cijenaPriloga = prilog && !stavka.posebanPrilog && jeBesplatanPrilog(stavka, prilog.naziv)
       ? 0
       : prilog?.cijena ?? 0;
-    return (stavka.cijena + cijenaPriloga) * stavka.kolicina;
+    return stavka.cijena * stavka.kolicina + cijenaPriloga * kolicinaPriloga(stavka.jedinica, stavka.kolicina);
   }
 
   const ukupno = korpa.reduce((suma, stavka) => suma + cijenaStavke(stavka), 0);

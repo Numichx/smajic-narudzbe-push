@@ -29,11 +29,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ greska: "Probne obavijesti nije moguće učitati." }, { status: 500 });
     }
   }
+  // Potpuno stornirana narudžba se zatvara bez izdavanja, pa o njoj nema obavijesti.
   const { data, error } = await supabase
     .from("narudzbe")
-    .select("id, broj, stanica, izmijenjeno_at")
+    .select("id, broj, stanica, izmijenjeno_at, stavke_narudzbe!inner(id)")
     .eq("status", "Izdato")
     .eq("kreirao_ime", sesija.ime)
+    .eq("stavke_narudzbe.stornirano", false)
     .gte("izmijenjeno_at", datum.data)
     .order("izmijenjeno_at", { ascending: true })
     .limit(50);
@@ -41,5 +43,8 @@ export async function GET(request: Request) {
     console.error("Učitavanje obavijesti nije uspjelo:", error);
     return NextResponse.json({ greska: "Obavijesti nije moguće učitati." }, { status: 500 });
   }
-  return NextResponse.json({ obavijesti: data, sada });
+  return NextResponse.json({
+    obavijesti: data.map(({ id, broj, stanica, izmijenjeno_at }) => ({ id, broj, stanica, izmijenjeno_at })),
+    sada,
+  });
 }

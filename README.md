@@ -52,14 +52,18 @@ nikad ne razgovara direktno sa Supabaseom: sve ide preko API ruta na serveru,
 a javni (publishable) ključ nema nikakva prava nad tabelama. Proxy stranicu
 uloge (npr. `/sefica`) otvara samo prijavljenoj osobi te uloge; API rute uz to
 same provjeravaju sesiju i ulogu. Kada šefica deaktivira zaposlenika, njegova
-lična sesija prestaje važiti u roku od 30 sekundi.
+lična sesija prestaje važiti u roku od 30 sekundi. Sesija traje 18 sati; kada
+istekne, otvoreni ekran u roku od minute vodi na prijavu.
 
 ## Sigurnost
 
 - Sigurnosna zaglavlja (HSTS, zabrana `<iframe>`, `nosniff`, Referrer-Policy,
   Permissions-Policy) postavlja `next.config.ts`.
 - Prijava PIN-om ima ograničenje pokušaja u bazi (`pin_pokusaji`), a baza odbija
-  lake PIN-ove (npr. 1111, 1234, 2580, godine) pri unosu novog PIN-a.
+  lake PIN-ove (npr. 1111, 1234, 2580, godine) pri unosu novog PIN-a. Uređaj koji
+  se već uspješno prijavio pamti se potpisanim kolačićem i zaključava samo sebe
+  (5 pogrešnih PIN-ova); nepoznati uređaji imaju ograničenje po IP adresi (5) i
+  ukupno (30).
 - Greške iz baze do preglednika stižu samo kao poslovne poruke naših SQL
   funkcija (SQLSTATE P0001); tehnički detalji ostaju u logu servera.
 - Zavisnosti se provjeravaju sa `npm audit` u workflowu „Zavisnosti” (na svaki
@@ -76,13 +80,15 @@ meniju nisu aktivirane dok se ne podese konkretne cijene.
 - Automatska podjela narudžbe na kuhinju, pečenjaru i šank; stanice osvježavaju
   red i prate status pripreme.
 - Standardni i naplatni prilozi, provjera PIN-a za poseban prilog, pregled
-  zbirnih jela, storno s razlogom i dnevnikom radnji.
+  zbirnih jela, storno s razlogom i dnevnikom radnji. Potpuno stornirana narudžba
+  ne blokira naplatu, a stanica je sklanja jednim potezom.
 - Naplata, dug gosta, podjela po osobi, štampa računa na 58 mm, premještanje i
   spajanje stolova/računa.
 - Evidencija rezervacija, upravljanje osobljem i PIN-ovima, naplata dugova
   gostiju i evidencija uplata pečenjari.
-- Zalihe, recepti, automatski zahtjevi mesnici, prijem robe, prodaja mesa i
-  prijedlozi nabavke.
+- Stanje robe u mesnici mijenjaju isporuka kuhinji, prodaja mesa i popis; narudžbe
+  ga ne skidaju. Kuhinja šalje zahtjeve mesnici, a recepti služe za prijedloge
+  nabavke.
 - Smjene s početnim i završnim popisom šanka, evidentiranjem dopuna,
   obračunom pazara i prikazom razlike; izvještaji i CSV izvoz.
 - Pečenjara evidentira trošak narudžbe i stvarnu količinu izdate jagnjetine;

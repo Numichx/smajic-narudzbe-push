@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { pocetakPerioda } from "@/lib/domain/period";
 
 type Statistika = {
   ime: string;
@@ -17,7 +18,8 @@ export function StatistikaKonobara() {
   const [greska, setGreska] = useState("");
   const ucitaj = useCallback(async () => {
     try {
-      const response = await fetch(`/api/statistika-konobara?dani=${dani}`, { cache: "no-store" });
+      const parametri = new URLSearchParams({ dani, od: pocetakPerioda(Number(dani)) });
+      const response = await fetch(`/api/statistika-konobara?${parametri}`, { cache: "no-store" });
       const body = await response.json();
       if (!response.ok) {
         setGreska(body.greska ?? "Statistiku nije moguće učitati.");
@@ -42,7 +44,7 @@ export function StatistikaKonobara() {
         {statistika && <section className="kpi-row mt-4">{[
           ["Konobar", statistika.ime],
           ["Računi", String(statistika.brojRacuna)],
-          ["Naplaceno", `${statistika.naplaceno.toFixed(2)} KM`],
+          ["Naplaćeno", `${statistika.naplaceno.toFixed(2)} KM`],
           ["Dug gostiju", `${statistika.dug.toFixed(2)} KM`],
           ["Prosječan račun", `${statistika.prosjecanRacun.toFixed(2)} KM`],
           ["Bakšiš (vidi samo konobar)", `${statistika.baksis.toFixed(2)} KM`],

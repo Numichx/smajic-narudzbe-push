@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { pocetakPerioda } from "@/lib/domain/period";
 
 type Izvjestaj = {
   naplaceno: number;
@@ -38,7 +39,8 @@ export function IzvjestajPanel() {
 
   const ucitaj = useCallback(async () => {
     try {
-      const odgovor = await fetch(`/api/izvjestaji?dani=${dani}`, { cache: "no-store" });
+      const parametri = new URLSearchParams({ dani, od: pocetakPerioda(Number(dani)) });
+      const odgovor = await fetch(`/api/izvjestaji?${parametri}`, { cache: "no-store" });
       const podaci = await odgovor.json();
       if (!odgovor.ok) {
         setGreska(podaci.greska ?? "Izvještaj nije moguće učitati.");
@@ -60,7 +62,7 @@ export function IzvjestajPanel() {
     if (!izvjestaj) return;
     const redovi = [
       ["Vrsta", "Naziv", "Iznos", "Broj"],
-      ["Sažetak", "Naplaceno", String(izvjestaj.naplaceno), String(izvjestaj.racuni)],
+      ["Sažetak", "Naplaćeno", String(izvjestaj.naplaceno), String(izvjestaj.racuni)],
       ["Sažetak", "Naručeno", String(izvjestaj.naruceno), ""],
       ["Sažetak", "Dug", String(izvjestaj.dug), ""],
       ["Sažetak", "Bakšiš", String(izvjestaj.baksis), ""],
@@ -94,7 +96,7 @@ export function IzvjestajPanel() {
           <>
             <section className="kpi-row mt-5">
               {[
-                ["Naplaceno", novac(izvjestaj.naplaceno)],
+                ["Naplaćeno", novac(izvjestaj.naplaceno)],
                 ["Naručeno", novac(izvjestaj.naruceno)],
                 ["Dug gostiju", novac(izvjestaj.dug)],
                 ["Broj računa", String(izvjestaj.racuni)],
@@ -118,7 +120,7 @@ export function IzvjestajPanel() {
               <article className="card card-pad">
                 <h2 className="section-title">Pazar po smjeni</h2>
                 <ul className="mt-3 divide-y divide-stone-100">
-                  {izvjestaj.po_smjeni.map((red) => <li key={red.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span>{red.oznaka} · {red.preuzeo_ime} · {new Date(red.pocetak_at).toLocaleDateString("bs-BA")}</span><span>Naplaceno {novac(red.naplaceno)} · predano {novac(red.predani_pazar ?? 0)}</span></li>)}
+                  {izvjestaj.po_smjeni.map((red) => <li key={red.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span>{red.oznaka} · {red.preuzeo_ime} · {new Date(red.pocetak_at).toLocaleDateString("bs-BA")}</span><span>Naplaćeno {novac(red.naplaceno)} · predano {novac(red.predani_pazar ?? 0)}</span></li>)}
                 </ul>
               </article>
               <article className="card card-pad">

@@ -44,6 +44,8 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
   const [novoStanje, setNovoStanje] = useState<Record<string, string>>({});
   const [razlogStanja, setRazlogStanja] = useState("Popis mesnice");
   const [greska, setGreska] = useState("");
+  // Greška učitavanja je odvojena: osvježavanje ne smije brisati poruku o radnji.
+  const [greskaUcitavanja, setGreskaUcitavanja] = useState("");
   const [poruka, setPoruka] = useState("");
   const [radi, setRadi] = useState(false);
 
@@ -58,25 +60,25 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
       const [odgovorZaliha, odgovorZahtjevi, odgovorNabavka] = odgovori;
       const [podaciZaliha, podaciZahtjevi, podaciNabavka] = tijela;
       if (!odgovorZaliha.ok) {
-        setGreska(podaciZaliha.greska ?? "Zalihe nije moguće učitati.");
+        setGreskaUcitavanja(podaciZaliha.greska ?? "Zalihe nije moguće učitati.");
         return;
       }
       if (!odgovorZahtjevi.ok) {
-        setGreska(podaciZahtjevi.greska ?? "Zahtjeve mesnice nije moguće učitati.");
+        setGreskaUcitavanja(podaciZahtjevi.greska ?? "Zahtjeve mesnice nije moguće učitati.");
         return;
       }
       setArtikli(podaciZaliha.zaliha);
       setZahtjevi(podaciZahtjevi.zahtjevi);
       if (uloga === "sefica") {
         if (!odgovorNabavka?.ok) {
-          setGreska(podaciNabavka?.greska ?? "Prijedlog nabavke nije moguće učitati.");
+          setGreskaUcitavanja(podaciNabavka?.greska ?? "Prijedlog nabavke nije moguće učitati.");
           return;
         }
         setNabavka(podaciNabavka.nabavka);
       }
-      setGreska("");
+      setGreskaUcitavanja("");
     } catch {
-      setGreska("Nema veze sa serverom.");
+      setGreskaUcitavanja("Nema veze sa serverom.");
     }
   }, [uloga]);
 
@@ -148,6 +150,7 @@ export function ZalihaPanel({ uloga }: { uloga: "sefica" | "mesnica" }) {
           <button type="button" onClick={() => void ucitaj()} className="btn btn-ghost btn-sm">Osvježi</button>
         </div>
         {greska && <p role="alert" className="alert alert-danger mt-4">{greska}</p>}
+        {greskaUcitavanja && <p role="alert" className="alert alert-danger mt-4">{greskaUcitavanja}</p>}
         {poruka && <p role="status" className="alert alert-ok mt-4">{poruka}</p>}
 
         {uloga === "sefica" && (

@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isUlogaZaposlenika } from "@/lib/auth/session";
-import { kreirajTokenSesije } from "@/lib/auth/sessionToken";
+import { kreirajTokenSesije, TRAJANJE_SESIJE_SEKUNDE } from "@/lib/auth/sessionToken";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoEmployeeLogin, demoVerifyPin } from "@/lib/demo/store";
 import {
-  ipKlijenta,
+  izvorPokusaja,
   provjeriOgranicenjePina,
   zabiljeziPinPokusaj,
+  zapamtiUredjaj,
 } from "@/lib/auth/pinOgranicenje";
-
-const TRAJANJE_SESIJE = 60 * 60 * 12;
 
 export async function POST(request: Request) {
   let tijelo: unknown;
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
   const supabase = createSupabaseAdminClient();
   let idZaposlenika = crypto.randomUUID();
   let imeZaSesiju = imeZaposlenika;
-  const ip = ipKlijenta(request);
+  const izvor = await izvorPokusaja(request);
 
   if (uloga === "konobar") {
     if (imeZaposlenika.length < 2 || imeZaposlenika.length > 80) {
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
       if (typeof pin !== "string" || !/^\d{4,8}$/.test(pin)) {
         return NextResponse.json({ greska: "Unesite PIN koji vam je dodijelila šefica." }, { status: 401 });
       }
-      const zakljucano = await provjeriOgranicenjePina(supabase, ip);
+      const zakljucano = await provjeriOgranicenjePina(supabase, izvor);
       if (zakljucano) return zakljucano;
       const { data: zaposlenik, error } = await supabase.rpc("autentificiraj_konobara", {
         p_ime: imeZaposlenika,
@@ -60,14 +59,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ greska: "Prijavu trenutno nije moguće provjeriti." }, { status: 503 });
       }
       if (!zaposlenik) {
-        await zabiljeziPinPokusaj(supabase, ip, false);
+        await zabiljeziPinPokusaj(supabase, izvor, false);
         return NextResponse.json({ greska: "Konobar nije unesen ili je deaktiviran." }, { status: 401 });
       }
       if (typeof zaposlenik === "object" && "pogresan_pin" in zaposlenik) {
-        await zabiljeziPinPokusaj(supabase, ip, false);
+        await zabiljeziPinPokusaj(supabase, izvor, false);
         return NextResponse.json({ greska: "Pogrešan PIN." }, { status: 401 });
       }
-      await zabiljeziPinPokusaj(supabase, ip, true);
+      await zabiljeziPinPokusaj(supabase, izvor, true);
       if (
         typeof zaposlenik !== "object" ||
         !("id" in zaposlenik) ||
@@ -95,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     if (supabase) {
-      const zakljucano = await provjeriOgranicenjePina(supabase, ip);
+      const zakljucano = await provjeriOgranicenjePina(supabase, izvor);
       if (zakljucano) return zakljucano;
       const { data: pinJeIspravan, error } = await supabase.rpc("provjeri_pin", {
         p_kljuc: uloga === "sefica" ? "sefica" : "osoblje",
@@ -106,10 +105,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ greska: "PIN trenutno nije moguće provjeriti." }, { status: 503 });
       }
       if (!pinJeIspravan) {
-        await zabiljeziPinPokusaj(supabase, ip, false);
+        await zabiljeziPinPokusaj(supabase, izvor, false);
         return NextResponse.json({ greska: "Pogrešan PIN." }, { status: 401 });
       }
-      await zabiljeziPinPokusaj(supabase, ip, true);
+      await zabiljeziPinPokusaj(supabase, izvor, true);
     } else {
       if (!await demoVerifyPin(uloga, pin)) {
         return NextResponse.json({ greska: "Pogrešan PIN." }, { status: 401 });
@@ -153,10 +152,11 @@ export async function POST(request: Request) {
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: TRAJANJE_SESIJE,
+    maxAge: TRAJANJE_SESIJE_SEKUNDE,
   };
 
   cookieStore.set("sesija", tokenSesije, cookieOptions);
+  await zapamtiUredjaj();
 
   return NextResponse.json({ ok: true });
 }

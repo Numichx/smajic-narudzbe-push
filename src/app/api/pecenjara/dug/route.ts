@@ -3,24 +3,8 @@ import { porukaZaKorisnika } from "@/lib/api/greske";
 import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sviRedovi } from "@/lib/supabase/sviRedovi";
 import { demoButcherDebts, demoButcherPayment } from "@/lib/demo/store";
-import type { PostgrestError } from "@supabase/supabase-js";
-
-// Supabase vraća najviše 1000 redova po upitu (max_rows), a dug se računa iz
-// cijele historije, pa se redovi čitaju po stranicama.
-const VELICINA_STRANICE = 1000;
-
-async function sviRedovi<T>(
-  upit: (od: number, doReda: number) => PromiseLike<{ data: T[] | null; error: PostgrestError | null }>,
-): Promise<{ data: T[]; error: null } | { data: null; error: PostgrestError }> {
-  const redovi: T[] = [];
-  for (let od = 0; ; od += VELICINA_STRANICE) {
-    const { data, error } = await upit(od, od + VELICINA_STRANICE - 1);
-    if (error) return { data: null, error };
-    redovi.push(...(data ?? []));
-    if (!data || data.length < VELICINA_STRANICE) return { data: redovi, error: null };
-  }
-}
 
 export async function GET() {
   const sesija = await procitajZahtjevSesiju();

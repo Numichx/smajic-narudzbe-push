@@ -99,20 +99,34 @@ function SaPutanjom({ children }: { children: (putanja: string) => ReactNode }) 
 }
 
 function Korisnik({ uloga }: { uloga: UlogaZaposlenika }) {
+  const router = useRouter();
   const [ime, setIme] = useState("");
 
+  // Provjera se ponavlja: kad sesija istekne ili zaposlenik bude deaktiviran, ekran ne
+  // smije ostati na starim podacima nego vodi na prijavu. Bez veze se ništa ne dešava,
+  // jer rad bez interneta mora ostati moguć.
   useEffect(() => {
     let aktivno = true;
-    void fetch("/api/sesija", { cache: "no-store" })
-      .then(async (odgovor) => (odgovor.ok ? (await odgovor.json()) as { ime: string } : null))
-      .then((sesija) => {
-        if (aktivno && sesija) setIme(sesija.ime);
-      })
-      .catch(() => undefined);
+    async function provjeri() {
+      const odgovor = await fetch("/api/sesija", { cache: "no-store" }).catch(() => null);
+      if (!aktivno || !odgovor) return;
+      const sesija = odgovor.ok
+        ? await odgovor.json().catch(() => null) as { ime: string; uloga: string } | null
+        : null;
+      if (!aktivno) return;
+      if (odgovor.status === 401 || (sesija && sesija.uloga !== uloga)) {
+        router.replace(`/login?uloga=${uloga}`);
+      } else if (sesija) {
+        setIme(sesija.ime);
+      }
+    }
+    void provjeri();
+    const interval = window.setInterval(() => void provjeri(), 60_000);
     return () => {
       aktivno = false;
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [router, uloga]);
 
   const prikaz = ime || NAZIVI_ULOGA[uloga];
   return (

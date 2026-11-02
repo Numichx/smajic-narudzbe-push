@@ -37,6 +37,18 @@ const SLJEDECI_STATUS: Record<
   sank: { Novo: "U pripremi", "U pripremi": "Izdato" },
 };
 
+const potpunoStornirana = (narudzba: Narudzba) =>
+  narudzba.stavke_narudzbe.length > 0 &&
+  narudzba.stavke_narudzbe.every((stavka) => stavka.stornirano);
+
+/** Potpuno storniranu narudžbu stanica sklanja jednim potezom, bez pripreme. */
+const sljedeciStatus = (stanica: Stanica, narudzba: Narudzba) =>
+  potpunoStornirana(narudzba) ? "Izdato" : SLJEDECI_STATUS[stanica][narudzba.status];
+
+const imaJagnjetinu = (narudzba: Narudzba) => narudzba.stavke_narudzbe.some(
+  (stavka) => !stavka.stornirano && stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
+);
+
 /** Tekst dugmeta prema statusu u koji narudžba prelazi. */
 const TEKST_DUGMETA: Record<StatusNarudzbe, string> = {
   Novo: "",
@@ -54,6 +66,8 @@ export function RedStanice({
 }) {
   const [narudzbe, setNarudzbe] = useState<Narudzba[]>([]);
   const [greska, setGreska] = useState("");
+  // Greška učitavanja je odvojena: osvježavanje svake 3 s ne smije brisati poruku o radnji.
+  const [greskaUcitavanja, setGreskaUcitavanja] = useState("");
   const [ucitava, setUcitava] = useState(true);
   const [azuriraId, setAzuriraId] = useState("");
   const [cijenePecenjare, setCijenePecenjare] = useState<Record<string, string>>({});
@@ -66,15 +80,15 @@ export function RedStanice({
       const odgovor = await fetch("/api/narudzbe", { cache: "no-store" });
       const podaci = await odgovor.json();
       if (!odgovor.ok) {
-        setGreska(podaci.greska ?? "Narudžbe nije moguće učitati.");
+        setGreskaUcitavanja(podaci.greska ?? "Narudžbe nije moguće učitati.");
         return;
       }
 
       setNarudzbe(podaci.narudzbe);
       setSada(Date.now());
-      setGreska("");
+      setGreskaUcitavanja("");
     } catch {
-      setGreska("Nema veze sa serverom.");
+      setGreskaUcitavanja("Nema veze sa serverom.");
     } finally {
       setUcitava(false);
     }
@@ -168,15 +182,13 @@ export function RedStanice({
   }
 
   async function promijeniStatus(narudzba: Narudzba) {
-    const status = SLJEDECI_STATUS[stanica][narudzba.status];
+    const status = sljedeciStatus(stanica, narudzba);
     if (!status || azuriraId) return;
     const unesenaCijena = cijenePecenjare[narudzba.id];
     const cijenaPecenjari = status === "Gotovo"
       ? Number(unesenaCijena)
       : undefined;
-    const imaJagnjetine = narudzba.stavke_narudzbe.some(
-      (stavka) => stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
-    );
+    const imaJagnjetine = imaJagnjetinu(narudzba);
     const unesenaJagnjetina = kolicineJagnjetine[narudzba.id];
     if (
       status === "Gotovo" &&
@@ -233,9 +245,6 @@ export function RedStanice({
   const kasniBroj = narudzbe.filter((narudzba) => narudzba.cekaDugo).length;
   const minuta = (narudzba: Narudzba) =>
     Math.max(0, Math.floor((sada - new Date(narudzba.kreirano_at).getTime()) / 60_000));
-  const imaJagnjetinu = (narudzba: Narudzba) => narudzba.stavke_narudzbe.some(
-    (stavka) => stavka.jedinica === "kg" && stavka.naziv.toLocaleLowerCase("bs").includes("jagnjetina"),
-  );
 
   return (
     <>
@@ -256,9 +265,9 @@ export function RedStanice({
         </div>
       </div>
 
-      {greska && (
-        <div role="alert" className="alert alert-danger mb-3"><Ikona naziv="upozorenje" /><div>{greska}</div></div>
-      )}
+      {[...new Set([greska, greskaUcitavanja])].filter(Boolean).map((poruka) => (
+        <div key={poruka} role="alert" className="alert alert-danger mb-3"><Ikona naziv="upozorenje" /><div>{poruka}</div></div>
+      ))}
 
       {ucitava ? (
         <p className="muted small">Učitavanje narudžbi...</p>
@@ -272,7 +281,7 @@ export function RedStanice({
                 <div className="kstack">
                   {uKoloni.length === 0 && <p className="tiny muted" style={{ padding: "4px" }}>Nema narudžbi.</p>}
                   {uKoloni.map((narudzba, index) => {
-                    const sljedeci = SLJEDECI_STATUS[stanica][narudzba.status];
+                    const sljedeci = sljedeciStatus(stanica, narudzba);
                     const trebaCijena = stanica === "pecenjara" && sljedeci === "Gotovo";
                     const jagnjetina = trebaCijena && imaJagnjetinu(narudzba);
                     const nedostajeUnos = trebaCijena && (
@@ -338,7 +347,7 @@ export function RedStanice({
                               disabled={(azuriraId !== "" && azuriraId !== narudzba.id) || nedostajeUnos}
                               className={`btn btn-sm ${narudzba.status === "Novo" ? "btn-primary" : "btn-soft"}`}
                             >
-                              {azuriraId === narudzba.id ? "Ažuriram..." : TEKST_DUGMETA[sljedeci]}
+                              {azuriraId === narudzba.id ? "Ažuriram..." : potpunoStornirana(narudzba) ? "Ukloni storno" : TEKST_DUGMETA[sljedeci]}
                             </button>
                           )}
                         </div>

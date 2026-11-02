@@ -3,6 +3,7 @@ import { z } from "zod";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoBillForTable } from "@/lib/demo/store";
+import { racunSpremanZaNaplatu } from "@/lib/domain/racun";
 
 const RacunSchema = z.object({
   id: z.string().uuid(),
@@ -29,6 +30,7 @@ const RacunSchema = z.object({
           prilozi: z.array(z.object({
             naziv: z.string(),
             cijena: z.number(),
+            poseban: z.boolean().optional(),
           })),
           stornirano: z.boolean(),
           storno_razlog: z.string().nullable(),
@@ -128,9 +130,7 @@ export async function GET(
     racun: {
       ...provjera.data,
       ukupno: Math.round((ukupno + Number.EPSILON) * 100) / 100,
-      sveIzdato: provjera.data.narudzbe.every(
-        (narudzba) => narudzba.status === "Izdato",
-      ),
+      sveIzdato: racunSpremanZaNaplatu(provjera.data.narudzbe),
     },
   });
 }

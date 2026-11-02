@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { jeBesplatanPrilog } from "../domain/besplatniPrilozi";
+import { jeBesplatanPrilog, kolicinaPriloga } from "../domain/besplatniPrilozi";
+import { moguciKusur } from "../domain/naplata";
 import { izracunajPopisPecenjare } from "../domain/pecenjara";
+import { racunSpremanZaNaplatu } from "../domain/racun";
 import { resolveSupabaseRuntimeConfiguration } from "../supabase/config";
 
 type DemoProduct = {
@@ -353,7 +355,7 @@ export async function demoTables() {
           ukupno: billTotal(bill),
           otvorenAt: bill.otvoren_at,
           minute: Math.max(0, Math.floor((Date.now() - Date.parse(bill.otvoren_at)) / 60000)),
-          cekaNaplatu: bill.narudzbe.length > 0 && bill.narudzbe.every((order) => order.status === "Izdato"),
+          cekaNaplatu: racunSpremanZaNaplatu(bill.narudzbe),
         } : null,
       };
     }),
@@ -393,30 +395,6 @@ export async function demoCreateOrder(input: {
       input.posebanPin !== state.pinovi.poseban_prilog) {
       throw new Error("Pogrešan PIN za poseban prilog.");
     }
-    const usage = new Map<string, number>();
-    for (const line of input.stavke) {
-      const product = state.proizvodi.find((entry) => entry.id === line.proizvodId)!;
-      const recipe = state.recepti.find((entry) => entry.proizvod_id === product.id);
-      for (const ingredient of recipe?.sastojci_recepta ?? []) {
-        usage.set(ingredient.zaliha_id, (usage.get(ingredient.zaliha_id) ?? 0) + ingredient.kolicina * line.kolicina);
-      }
-    }
-    for (const [stockId, quantity] of usage) {
-      const stockItem = state.zaliha.find((entry) => entry.id === stockId);
-      if (!stockItem || stockItem.stanje < quantity) throw new Error(`Nema dovoljno zalihe: ${stockItem?.naziv ?? "sastojak"}.`);
-    }
-    for (const [stockId, quantity] of usage) {
-      const stockItem = state.zaliha.find((entry) => entry.id === stockId)!;
-      stockItem.stanje = round(stockItem.stanje - quantity);
-      if (stockItem.stanje <= stockItem.minimum &&
-        !state.zahtjevi.some((request) => request.zaliha_id === stockId && request.status === "nov")) {
-        state.zahtjevi.push({
-          id: randomUUID(), zaliha_id: stockId, kolicina: null, izvor: "minimum",
-          status: "nov", kreirao_ime: "Automatski", kreirano_at: new Date().toISOString(),
-          isporucio_ime: null,
-        });
-      }
-    }
     let bill = openBillForTable(state, input.stoId);
     const now = new Date().toISOString();
     if (!bill) {
@@ -435,7 +413,7 @@ export async function demoCreateOrder(input: {
         const standard = selected.standard;
         return {
           proizvod_id: side.id, naziv: side.naziv,
-          cijena: standard ? 0 : round(side.cijena * line.kolicina),
+          cijena: standard ? 0 : round(side.cijena * kolicinaPriloga(product.jedinica, line.kolicina)),
           standard, poseban: selected.poseban,
         };
       });
@@ -451,7 +429,7 @@ export async function demoCreateOrder(input: {
         if (productAddon.stanica === product.stanica) continue;
         const companion: DemoItem = {
           id: randomUUID(), proizvod_id: productAddon.id, naziv: productAddon.naziv,
-          jedinica: productAddon.jedinica, kolicina: line.kolicina, cijena: 0,
+          jedinica: productAddon.jedinica, kolicina: kolicinaPriloga(product.jedinica, line.kolicina), cijena: 0,
           napomena: `Prilog uz ${product.naziv}`, prilozi: [], stornirano: false,
           storno_razlog: null, storno_vrijednost: null, roditeljska_stavka_id: itemId,
         };
@@ -500,10 +478,13 @@ export async function demoSetOrderStatus(input: {
     const allowed: Partial<Record<DemoOrder["status"], DemoOrder["status"]>> = order.stanica === "pecenjara"
       ? { Novo: "U pripremi", "U pripremi": "Gotovo", Gotovo: "Izdato" }
       : { Novo: "U pripremi", "U pripremi": "Izdato" };
-    if (allowed[order.status] !== input.status) throw new Error("Nije dozvoljen ovaj prelaz statusa.");
+    const potpunoStornirana = order.stavke_narudzbe.every((item) => item.stornirano);
+    if (allowed[order.status] !== input.status && !(potpunoStornirana && input.status === "Izdato")) {
+      throw new Error("Nije dozvoljen ovaj prelaz statusa.");
+    }
     if (input.status === "Gotovo") {
       if (input.cost === undefined || !Number.isFinite(input.cost) || input.cost < 0) throw new Error("Unesite ispravnu cijenu za pečenjaru.");
-      const lamb = order.stavke_narudzbe.find((item) => item.jedinica === "kg" && item.naziv.toLowerCase().includes("jagnjetina"));
+      const lamb = order.stavke_narudzbe.find((item) => !item.stornirano && item.jedinica === "kg" && item.naziv.toLowerCase().includes("jagnjetina"));
       if (lamb) {
         if (input.lambKg === undefined || !Number.isFinite(input.lambKg) || input.lambKg < 0) throw new Error("Unesite stvarnu količinu jagnjetine.");
         lamb.kolicina = input.lambKg;
@@ -523,7 +504,7 @@ function billDetail(bill: DemoBill, state: DemoState) {
     otvoren_at: bill.otvoren_at, podijeljeno_na: bill.podijeljeno_na,
     stolovi: bill.stolovi.map((id) => ({ id, naziv: `Sto ${id}` })),
     ukupno: billTotal(bill),
-    sveIzdato: bill.narudzbe.length > 0 && bill.narudzbe.every((order) => order.status === "Izdato"),
+    sveIzdato: racunSpremanZaNaplatu(bill.narudzbe),
     narudzbe: bill.narudzbe.map((order) => ({
       ...order,
       stavke_narudzbe: order.stavke_narudzbe.map((item) => ({
@@ -549,7 +530,7 @@ export async function demoOpenBills() {
       konobar: bill.konobar_ime, otvorenAt: bill.otvoren_at,
       minute: Math.max(0, Math.floor((Date.now() - Date.parse(bill.otvoren_at)) / 60_000)),
       ukupno: billTotal(bill), podijeljenoNa: bill.podijeljeno_na,
-      cekaNaplatu: bill.narudzbe.length > 0 && bill.narudzbe.every((order) => order.status === "Izdato"),
+      cekaNaplatu: racunSpremanZaNaplatu(bill.narudzbe),
     })),
   };
 }
@@ -562,7 +543,8 @@ export async function demoPayBill(input: {
     const bill = state.racuni.find((entry) => entry.id === input.billId && entry.status === "otvoren");
     if (!bill) throw new Error("Otvoreni račun nije pronađen.");
     const total = billTotal(bill);
-    if (input.method !== "dug" && (input.given < total || input.change > input.given - total)) throw new Error("Iznos naplate ili kusura nije ispravan.");
+    if (!racunSpremanZaNaplatu(bill.narudzbe)) throw new Error("Račun se ne može naplatiti dok stanice ne izdaju sve narudžbe.");
+    if (input.method !== "dug" && (input.given < total || input.change > moguciKusur(total, input.given))) throw new Error("Iznos naplate ili kusura nije ispravan.");
     if (input.method === "dug" && !input.debtor?.trim()) throw new Error("Unesite ime gosta za dug.");
     const payment = {
       id: randomUUID(), racun_id: bill.id, ukupno: total, nacin: input.method,
@@ -1023,9 +1005,9 @@ export async function demoPurchaseSuggestions() {
   };
 }
 
-export async function demoReport(days: number) {
+export async function demoReport(od: string) {
   const state = await readState();
-  const from = Date.now() - days * 24 * 60 * 60 * 1000;
+  const from = Date.parse(od);
   const payments = state.naplate.filter((payment) => Date.parse(payment.kreirano_at) >= from);
   const bills = state.racuni.filter((bill) => Date.parse(bill.otvoren_at) >= from);
   const orders = bills.flatMap((bill) => bill.narudzbe);
@@ -1095,9 +1077,9 @@ export async function demoReport(days: number) {
   };
 }
 
-export async function demoWaiterStats(actor: string, days: number) {
+export async function demoWaiterStats(actor: string, days: number, od: string) {
   const state = await readState();
-  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  const since = Date.parse(od);
   const payments = state.naplate.filter((payment) => payment.naplatio_ime === actor && Date.parse(payment.kreirano_at) >= since);
   const paid = payments.filter((payment) => payment.nacin !== "dug");
   const total = paid.reduce((sum, payment) => sum + payment.ukupno, 0);
@@ -1276,7 +1258,8 @@ export async function demoIssuedOrdersSince(from: string, waiter: string) {
   return {
     obavijesti: state.racuni.flatMap((bill) => bill.narudzbe)
       .filter((order) => order.status === "Izdato" && order.kreirao_ime === waiter &&
-        Date.parse(order.izmijenjeno_at) >= fromTime)
+        Date.parse(order.izmijenjeno_at) >= fromTime &&
+        order.stavke_narudzbe.some((item) => !item.stornirano))
       .sort((a, b) => a.izmijenjeno_at.localeCompare(b.izmijenjeno_at))
       .slice(0, 50)
       .map((order) => ({

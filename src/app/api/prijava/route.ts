@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isUlogaZaposlenika } from "@/lib/auth/session";
-import { kreirajTokenSesije } from "@/lib/auth/sessionToken";
+import { kreirajTokenSesije, TRAJANJE_SESIJE_SEKUNDE } from "@/lib/auth/sessionToken";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoPersonalLogin } from "@/lib/demo/store";
 import {
-  ipKlijenta,
+  izvorPokusaja,
   provjeriOgranicenjePina,
   zabiljeziPinPokusaj,
+  zapamtiUredjaj,
 } from "@/lib/auth/pinOgranicenje";
-
-const TRAJANJE_SESIJE = 60 * 60 * 12;
 
 type Pogodak = { id: string; ime: string; uloga: string } | { dvosmislen: true } | null;
 
@@ -29,8 +28,8 @@ export async function POST(request: Request) {
   let pogodak: Pogodak;
   const supabase = createSupabaseAdminClient();
   if (supabase) {
-    const ip = ipKlijenta(request);
-    const zakljucano = await provjeriOgranicenjePina(supabase, ip);
+    const izvor = await izvorPokusaja(request);
+    const zakljucano = await provjeriOgranicenjePina(supabase, izvor);
     if (zakljucano) return zakljucano;
 
     const { data, error } = await supabase.rpc("autentificiraj_zaposlenika", { p_pin: pin });
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ greska: "PIN trenutno nije moguće provjeriti." }, { status: 503 });
     }
     pogodak = (data ?? null) as Pogodak;
-    await zabiljeziPinPokusaj(supabase, ip, pogodak !== null);
+    await zabiljeziPinPokusaj(supabase, izvor, pogodak !== null);
   } else {
     pogodak = await demoPersonalLogin(pin);
   }
@@ -78,8 +77,9 @@ export async function POST(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: TRAJANJE_SESIJE,
+    maxAge: TRAJANJE_SESIJE_SEKUNDE,
   });
+  await zapamtiUredjaj();
 
   return NextResponse.json({ ok: true, uloga: pogodak.uloga, ime: pogodak.ime });
 }

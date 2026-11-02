@@ -1,11 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Proizvod = { id: string; naziv: string; stanica: string };
 type Sastojak = { zalihaId: string; kolicina: string };
 type Recept = { id: string; proizvod_id: string; sastojci_recepta: { zaliha_id: string; kolicina: number }[] };
 type ArtikalZalihe = { id: string; naziv: string; jedinica: string };
+
+function sastojciRecepta(recepti: Recept[], proizvodId: string): Sastojak[] {
+  return recepti.find((recept) => recept.proizvod_id === proizvodId)?.sastojci_recepta.map((stavka) => ({
+    zalihaId: stavka.zaliha_id,
+    kolicina: String(stavka.kolicina),
+  })) ?? [];
+}
 
 export function ReceptiPanel() {
   const [proizvodi, setProizvodi] = useState<Proizvod[]>([]);
@@ -16,6 +23,7 @@ export function ReceptiPanel() {
   const [greska, setGreska] = useState("");
   const [poruka, setPoruka] = useState("");
   const [radi, setRadi] = useState(false);
+  const izabranPocetni = useRef(false);
 
   const ucitaj = useCallback(async () => {
     try {
@@ -28,15 +36,14 @@ export function ReceptiPanel() {
       setProizvodi(body.proizvodi);
       setArtikli(body.zaliha);
       setRecepti(body.recepti);
-      const firstProductId = body.proizvodi[0]?.id ?? "";
-      setProizvodId((current) => current || firstProductId);
-      setSastojci((current) => current.length ? current : (
-        body.recepti.find((recept: Recept) => recept.proizvod_id === firstProductId)
-          ?.sastojci_recepta.map((item: Recept["sastojci_recepta"][number]) => ({
-            zalihaId: item.zaliha_id,
-            kolicina: String(item.kolicina),
-          })) ?? []
-      ));
+      // Prvi proizvod se bira samo pri prvom učitavanju; kasnije osvježavanje ne dira
+      // otvoreni recept, pa ispražnjen recept ne dobija sastojke drugog proizvoda.
+      if (!izabranPocetni.current) {
+        izabranPocetni.current = true;
+        const prviProizvodId = body.proizvodi[0]?.id ?? "";
+        setProizvodId(prviProizvodId);
+        setSastojci(sastojciRecepta(body.recepti, prviProizvodId));
+      }
     } catch {
       setGreska("Nema veze sa serverom.");
     }
@@ -49,11 +56,7 @@ export function ReceptiPanel() {
 
   function izaberiProizvod(id: string) {
     setProizvodId(id);
-    const recept = recepti.find((stavka) => stavka.proizvod_id === id);
-    setSastojci(recept?.sastojci_recepta.map((stavka) => ({
-      zalihaId: stavka.zaliha_id,
-      kolicina: String(stavka.kolicina),
-    })) ?? []);
+    setSastojci(sastojciRecepta(recepti, id));
   }
   function azurirajSastojak(index: number, patch: Partial<Sastojak>) {
     setSastojci((prethodni) => prethodni.map((sastojak, i) => i === index ? { ...sastojak, ...patch } : sastojak));
@@ -90,7 +93,7 @@ export function ReceptiPanel() {
   return (
     <section className="card card-pad mt-6">
       <h2 className="section-title">Recepti i normativi</h2>
-      <p className="small muted mt-1">Potrošnja sastojaka se skida automatski pri slanju narudžbe. Količine su po jednoj porciji/artiklu.</p>
+      <p className="small muted mt-1">Recepti služe za prijedlog nabavke i ne mijenjaju stanje robe. Količine su po jednoj porciji/artiklu.</p>
       {greska && <p role="alert" className="alert alert-danger mt-3">{greska}</p>}
       {poruka && <p role="status" className="alert alert-ok mt-3">{poruka}</p>}
       <form onSubmit={(event) => void sacuvaj(event)} className="mt-3">
