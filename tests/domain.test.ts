@@ -134,3 +134,13 @@ describe("domenske formule", () => {
     });
   });
 });
+
+describe("popust na račun", () => {
+  it("računa iznos nakon popusta na fening", async () => {
+    const { primijeniPopust } = await import("../src/lib/domain/racun");
+    expect(primijeniPopust(17.3, 10)).toBe(15.57);
+    expect(primijeniPopust(17.3, 100)).toBe(0);
+    expect(primijeniPopust(17.3, 0)).toBe(17.3);
+    expect(() => primijeniPopust(10, 101)).toThrow(RangeError);
+  });
+});

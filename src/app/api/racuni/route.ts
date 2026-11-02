@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { procitajZahtjevSesiju } from "@/lib/auth/requestSession";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { demoOpenBills } from "@/lib/demo/store";
-import { racunSpremanZaNaplatu } from "@/lib/domain/racun";
+import { primijeniPopust, racunSpremanZaNaplatu } from "@/lib/domain/racun";
 
 export async function GET() {
   const sesija = await procitajZahtjevSesiju();
@@ -20,7 +20,7 @@ export async function GET() {
   }
   const { data, error } = await supabase
     .from("racuni")
-    .select("id, broj, sto_id, konobar_ime, otvoren_at, podijeljeno_na, narudzbe(status, stavke_narudzbe(kolicina, cijena, prilozi, stornirano)), stolovi:racun_stolovi(stolovi(id, naziv))")
+    .select("id, broj, sto_id, konobar_ime, otvoren_at, podijeljeno_na, popust_procenat, narudzbe(status, stavke_narudzbe(kolicina, cijena, prilozi, stornirano)), stolovi:racun_stolovi(stolovi(id, naziv))")
     .eq("status", "otvoren")
     .order("otvoren_at", { ascending: true });
   if (error) {
@@ -47,7 +47,7 @@ export async function GET() {
       konobar: racun.konobar_ime,
       otvorenAt: racun.otvoren_at,
       minute: Math.max(0, Math.floor((Date.now() - new Date(racun.otvoren_at).getTime()) / 60_000)),
-      ukupno: Math.round((ukupno + Number.EPSILON) * 100) / 100,
+      ukupno: primijeniPopust(ukupno, Number(racun.popust_procenat)),
       podijeljenoNa: racun.podijeljeno_na,
       cekaNaplatu: racunSpremanZaNaplatu(racun.narudzbe),
     };
